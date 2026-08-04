@@ -8,18 +8,24 @@ def calculate_branch_circuits(
     is_existing_survey: bool = False,
     lighting_real_va: float = 0.0,
     voltage: float = 120.0,
-    feeder_length_m: float = 10.0
+    feeder_length_m: float = 10.0,
+    custom_light_circuits: int = 1,
+    custom_plug_circuits: int = 1,
+    custom_dedicated_circuits: int = 0
 ) -> dict:
     """
     Calcula circuitos derivados, factor de demanda, alimentador principal CFE 
-    y desglosa los polos requeridos en el centro de cargas según NOM-001-SEDE.
+    y dimensiona el centro de cargas según NOM-001-SEDE / NEC.
+    Soporta modo Obra Nueva y Levantamiento Real con distribución por confort.
     """
     if is_existing_survey:
+        # MODO LEVANTAMIENTO REAL
         lighting_load_va = lighting_real_va
         small_appliances_va = 0.0
         laundry_va = 0.0
         general_connected_va = lighting_real_va
     else:
+        # MODO PROYECTO / OBRA NUEVA (NOM-001)
         lighting_load_va = area_m2 * 33.0
         small_appliances_va = 2 * 1500.0  # 3,000 VA (Cocina)
         laundry_va = 1500.0              # 1,500 VA (Lavandería)
@@ -27,7 +33,7 @@ def calculate_branch_circuits(
 
     total_connected_va = general_connected_va + custom_appliances_va
 
-    # Factor de Demanda (Tabla 220.42)
+    # Factor de Demanda (Tabla 220.42) sobre Carga General
     if general_connected_va <= 3000.0:
         demanded_general_va = general_connected_va
     elif general_connected_va <= 120000.0:
@@ -37,12 +43,12 @@ def calculate_branch_circuits(
 
     total_demanded_va = demanded_general_va + custom_appliances_va
 
-    # Corriente del Alimentador Principal (CFE -> Centro de Cargas)
-    # Suponiendo FP promedio de 0.90
-    load_amps = total_demanded_va / (voltage * 0.90)
-    design_amps = load_amps * 1.25  # 125% Carga continua / seguridad
+    # Cálculo de Corriente del Alimentador Principal (CFE -> Centro de Cargas)
+    # Factor de potencia estimado de 0.90
+    load_amps = total_demanded_va / (voltage * 0.90) if voltage > 0 else 0.0
+    design_amps = load_amps * 1.25  # 125% Carga continua / factor de seguridad
 
-    # Selección de Calibre de Alimentador y Protección Principal
+    # Selección de Calibre de Alimentador y Verificación de Caída de Voltaje
     awg_candidates = ["12", "10", "8", "6", "4", "2", "1/0"]
     selected_awg = "8"
     feeder_vd_percent = 0.0
@@ -56,7 +62,7 @@ def calculate_branch_circuits(
                 feeder_vd_percent = vd_res["v_drop_percent"]
                 break
 
-    # Protección Principal Comercialmente Superior
+    # Interruptor Principal (Breaker) Comercial
     standard_breakers = [15, 20, 30, 40, 50, 60, 70, 80, 100]
     main_breaker = standard_breakers[-1]
     for b in standard_breakers:
@@ -64,29 +70,35 @@ def calculate_branch_circuits(
             main_breaker = b
             break
 
-    # Cálculo de Circuitos Derivados (Polos)
-    va_per_15a_circuit = voltage * 15.0 * 0.8  # 1,440 VA al 80%
-    lighting_circuits = math.ceil(lighting_load_va / va_per_15a_circuit) if lighting_load_va > 0 else 1
-
+    # Conteo de Polos / Circuitos Derivados
     if is_existing_survey:
-        # En levantamiento real: 1 alumbrado/contactos + 1 polo por cada carga específica significativa (>500 VA)
-        specific_circuits = 1 if custom_appliances_va > 0 else 0
-        if custom_appliances_va > 1500:
-            specific_circuits = math.ceil(custom_appliances_va / 1800.0)
-        total_circuits = lighting_circuits + specific_circuits
+        # Distribución por Zonas / Confort definida por el usuario
+        total_circuits = custom_light_circuits + custom_plug_circuits + custom_dedicated_circuits
+        min_lighting_circuits = custom_light_circuits
     else:
-        total_circuits = lighting_circuits + 2 + 1  # Alumbrado + 2 Pequeños Ap. + 1 Lavandería
+        # Mínimo normativo automático para obra nueva
+        va_per_15a_circuit = voltage * 15.0 * 0.8
+        min_lighting_circuits = math.ceil(lighting_load_va / va_per_15a_circuit) if lighting_load_va > 0 else 1
+        total_circuits = min_lighting_circuits + 2 + 1  # Alumbrado + 2 Cocina + 1 Lavandería
 
     return {
         "is_existing_survey": is_existing_survey,
         "lighting_load_va": round(lighting_load_va, 2),
+        "small_appliances_va": round(small_appliances_va, 2),
+        "laundry_va": round(laundry_va, 2),
+        "general_connected_va": round(general_connected_va, 2),
+        "custom_appliances_va": round(custom_appliances_va, 2),
         "total_connected_va": round(total_connected_va, 2),
+        "demanded_general_va": round(demanded_general_va, 2),
         "total_demanded_va": round(total_demanded_va, 2),
         "load_amps": round(load_amps, 2),
         "design_amps": round(design_amps, 2),
         "recommended_feeder_awg": selected_awg,
         "main_breaker": main_breaker,
         "feeder_vd_percent": feeder_vd_percent,
-        "lighting_circuits": lighting_circuits,
-        "total_circuits": total_circuits
+        "lighting_circuits": min_lighting_circuits,
+        "total_circuits": total_circuits,
+        "custom_light_circuits": custom_light_circuits,
+        "custom_plug_circuits": custom_plug_circuits,
+        "custom_dedicated_circuits": custom_dedicated_circuits
     }

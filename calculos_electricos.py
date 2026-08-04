@@ -181,33 +181,49 @@ with tab_auto:
 # ==========================================
 with tab_derivados:
     st.header("🏠 Alimentador CFE y Circuitos Derivados (NOM-001)")
-    st.caption("Determina la acometida principal, protección del centro de cargas y distribución de circuitos.")
+    st.caption("Calcula el alimentador principal, la protección y el cuadro de distribución por norma o por confort.")
 
     col_d1, col_d2 = st.columns([1, 1])
 
     with col_d1:
-        st.subheader("1. Parámetros Generales")
+        st.subheader("1. Configuración General")
         
         calc_mode = st.radio(
-            "Modo de Cálculo",
-            ["Obra Nueva / Proyecto (Por m² según NOM-001)", "Levantamiento Real / Instalación Existente"],
+            "Selecciona el Modo de Cálculo",
+            ["Obra Nueva / Proyecto (Por área m² según NOM-001)", "Levantamiento Real / Instalación Existente"],
             key="calc_mode_radio"
         )
         is_survey = "Levantamiento Real" in calc_mode
 
-        voltage_dev = st.number_input("Voltaje Alimentador (V)", value=120.0, step=10.0, key="volt_dev")
-        feeder_len = st.number_input("Distancia CFE a Centro de Cargas (m)", min_value=1.0, value=8.0, step=1.0, key="feeder_len_dev")
+        voltage_dev = st.number_input("Voltaje del Alimentador (V)", min_value=100.0, value=120.0, step=10.0, key="volt_dev")
+        feeder_len = st.number_input("Distancia de Medidor/CFE a Centro de Cargas (m)", min_value=1.0, value=8.0, step=1.0, key="feeder_len_dev")
 
         if not is_survey:
             area_input = st.number_input("Área de Construcción (m²)", min_value=10.0, value=150.0, step=10.0, key="area_dev")
             lighting_real = 0.0
+            num_light_c = 1
+            num_plug_c = 1
+            num_ded_c = 0
         else:
             area_input = 0.0
-            lighting_real = st.number_input("Carga Real Alumbrado/Contactos (VA)", min_value=0.0, value=270.0, step=50.0, key="light_real_dev")
+            lighting_real = st.number_input("Carga Real Medida de Alumbrado y Contactos (VA)", min_value=0.0, value=270.0, step=50.0, key="light_real_dev")
 
-        extra_va = st.number_input("Cargas Específicas (A/C, Micro, Lavadora) (VA)", min_value=0.0, value=3750.0, step=250.0, key="extra_dev")
+            st.markdown("---")
+            st.subheader("2. Sectorización por Confort / Zonas")
+            num_light_c = st.number_input("N° Circuitos de Alumbrado (15A)", min_value=1, value=2, step=1, key="num_light_circ")
+            num_plug_c = st.number_input("N° Circuitos de Contactos Generales (15A/20A)", min_value=1, value=2, step=1, key="num_plug_circ")
+            num_ded_c = st.number_input("N° Cargas Dedicadas (A/C, Micro, Lavadora, etc.)", min_value=0, value=3, step=1, key="num_ded_circ")
 
-        btn_calc_dev = st.button("📊 Calcular Alimentador y Cuadro", use_container_width=True, key="btn_dev")
+        extra_va = st.number_input(
+            "Cargas Específicas / Especiales Totales (VA)", 
+            min_value=0.0, 
+            value=3750.0, 
+            step=250.0, 
+            help="Suma total de potencia de A/C, microondas, lavasecadora, etc.", 
+            key="extra_dev"
+        )
+
+        btn_calc_dev = st.button("📊 Calcular Alimentador y Distribución", use_container_width=True, key="btn_dev")
 
     with col_d2:
         if btn_calc_dev:
@@ -217,28 +233,35 @@ with tab_derivados:
                 is_existing_survey=is_survey,
                 lighting_real_va=lighting_real,
                 voltage=voltage_dev,
-                feeder_length_m=feeder_len
+                feeder_length_m=feeder_len,
+                custom_light_circuits=num_light_c,
+                custom_plug_circuits=num_plug_c,
+                custom_dedicated_circuits=num_ded_c
             )
 
-            st.subheader("📋 Diagnóstico de Alimentador Principal")
+            st.subheader("⚡ Diagnóstico del Alimentador Principal")
 
             col_m1, col_m2 = st.columns(2)
             with col_m1:
+                st.metric("Carga Instalada Total", f"{res_dev['total_connected_va']:.0f} VA")
                 st.metric("Carga Demandada", f"{res_dev['total_demanded_va']:.0f} VA")
                 st.metric("Corriente de Diseño (125%)", f"{res_dev['design_amps']} A")
             with col_m2:
-                st.metric("Calibre Alimentador", f"Cal. {res_dev['recommended_feeder_awg']} AWG")
+                st.metric("Calibre Sugerido", f"Cal. {res_dev['recommended_feeder_awg']} AWG")
                 st.metric("Interruptor Principal", f"{res_dev['main_breaker']} A")
+                st.metric("Caída de Voltaje", f"{res_dev['feeder_vd_percent']}%")
 
             st.markdown("---")
-            st.subheader("🔌 Distribución en Centro de Cargas")
-            st.success(f"✅ **Capacidad Mínima Sugerida para Centro de Cargas:** **{res_dev['total_circuits']} Polos / Circuitos**")
-            
-            st.write(f"• **Circuito(s) Alumbrado/Contactos:** `{res_dev['lighting_circuits']} pastilla(s)`")
-            if not is_survey:
-                st.write("• **Circuitos Pequeños Aparatos (Cocina):** `2 pastillas (20A)`")
-                st.write("• **Circuito Lavandería:** `1 pastilla (20A)`")
+            st.subheader("🔌 Centro de Cargas Recomendado")
+            st.success(f"✅ **Capacidad Necesaria:** **Mínimo {res_dev['total_circuits']} Polos / Espacios**")
+
+            if is_survey:
+                st.info("ℹ️ **Distribución por Confort Activa:**")
+                st.write(f"• **Alumbrado Sectorizado:** `{res_dev['custom_light_circuits']} pastilla(s) (15A - Calibre 14/12 AWG)`")
+                st.write(f"• **Contactos Generales Sectorizados:** `{res_dev['custom_plug_circuits']} pastilla(s) (15A/20A - Calibre 12 AWG)`")
+                st.write(f"• **Circuitos Dedicados:** `{res_dev['custom_dedicated_circuits']} pastilla(s) independientes`")
+                st.caption("💡 *Dividir la casa por zonas evita apagones generales ante una falla local.*")
             else:
-                st.write(f"• **Circuitos para Cargas Específicas:** `{res_dev['total_circuits'] - res_dev['lighting_circuits']} pastilla(s) dedicadas`")
-            
-            st.caption(f"Caída de voltaje estimada en alimentador principal: {res_dev['feeder_vd_percent']}% (Límite max. 3%)")
+                st.write(f"• **Alumbrado Generales ($33\\text{{ VA/m}}^2$):** `{res_dev['lighting_circuits']} pastilla(s)`")
+                st.write("• **Circuitos de Cocina / Pequeños Aparatos:** `2 pastillas (20A)`")
+                st.write("• **Circuito de Lavandería:** `1 pastilla (20A)`")
