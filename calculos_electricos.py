@@ -15,11 +15,12 @@ st.title("⚡ Calculadora de Circuitos Eléctricos (NOM-001 / NEC)")
 st.caption("Cálculo de ampacidad corregida, caída de tensión y circuitos de motores según normativa")
 
 # PESTAÑAS PRINCIPALES (Orden de variables alineado a los elementos de la lista)
-tab_alimentadores, tab_motores, tab_auto, tab_derivados = st.tabs([
+tab_alimentadores, tab_motores, tab_auto, tab_derivados, tab_auditoria = st.tabs([
     "⚡ Alimentadores / Cargas Generales", 
     "🔄 Motores Eléctricos (Art. 430)",
     "🎯 Selección Automática por Carga",
-    "🏠 Circuitos Derivados (Art. 210/220)"
+    "🏠 Circuitos Derivados (Art. 210/220)",
+    "🔍 Levantamiento Real / Auditoría"
 ])
 
 
@@ -308,3 +309,120 @@ with tab_derivados:
                     file_name="dictamen_electrico_residencial.txt",
                     mime="text/plain"
                 )
+
+# ==========================================
+# PESTAÑA 5: LEVANTAMIENTO REAL / AUDITORÍA
+# ==========================================
+with tab_auditoria:
+    st.header("Auditoría Técnica de Instalación Existente")
+    st.markdown("Evaluación del estado de la acometida, protecciones principales y riesgo de falla térmica.")
+
+    st.subheader("1. Cargas Medidas y Especificadas")
+    col_c1, col_c2 = st.columns(2)
+
+    with col_c1:
+        load_lighting_contacts = st.number_input(
+            "Carga Medida en Alumbrado / Contactos Generales (VA):",
+            min_value=0.0,
+            value=270.0,
+            step=50.0,
+            help="Consumo estimado o medido en circuitos de uso general."
+        )
+        
+        num_circuits_lighting = st.number_input("N° Circuitos de Alumbrado:", min_value=1, value=2)
+        num_circuits_outlets = st.number_input("N° Circuitos de Contactos Generales:", min_value=1, value=2)
+
+    with col_c2:
+        st.markdown("**Cargas Específicas / Dedicadas (VA):**")
+        ac_va = st.number_input("A/C Minisplit Inverter (VA):", min_value=0.0, value=950.0, step=50.0)
+        micro_va = st.number_input("Horno Microondas (VA):", min_value=0.0, value=1200.0, step=50.0)
+        washer_va = st.number_input("Lavasecadora / Área de Lavado (VA):", min_value=0.0, value=1600.0, step=50.0)
+        
+        num_circuits_dedicated = st.number_input("N° Cargas Dedicadas Independientes:", min_value=1, value=3)
+
+    # Cálculo de carga total continua para la auditoría
+    total_va = load_lighting_contacts + ac_va + micro_va + washer_va
+    voltage = 120.0  # Voltaje de fase nominal
+    i_total = total_va / voltage  # Corriente total de diseño (A)
+
+    st.markdown("---")
+    st.subheader("2. Parámetros de la Acometida Actual (Infraestructura Existente)")
+    
+    col_a1, col_a2, col_a3 = st.columns(3)
+
+    with col_a1:
+        protection_type = st.radio(
+            "Tipo de Protección Principal Existente:",
+            ["Fusible (Cartucho)", "ITM (Pastilla/Breaker)"],
+            index=0,
+            help="Selecciona si el interruptor general usa fusibles de listón o pastilla termomagnética."
+        )
+
+    with col_a2:
+        current_itm = st.selectbox(
+            "Capacidad de Protección Actual (A):",
+            [15, 20, 30, 40, 50, 60],
+            index=2,  # 30A por defecto
+            help="Valor nominal estampado en el fusible o la pastilla principal."
+        )
+
+    with col_a3:
+        existing_awg = st.selectbox(
+            "Calibre del Cable Alimentador Existente (AWG):",
+            [14, 12, 10, 8, 6, 4],
+            index=2,  # 10 AWG por defecto
+            help="Calibre del cable de cobre que va desde la mufa/medidor hasta el tablero."
+        )
+
+    # --- Ejecución de la Auditoría ---
+    health = audit_service_entrance_health(
+        main_protection_type="Fusible" if "Fusible" in protection_type else "ITM",
+        main_protection_amps=current_itm,
+        existing_wire_awg=existing_awg,
+        total_continuous_amps=i_total
+    )
+
+    st.markdown("---")
+    st.subheader("3. Dictamen de Salud y Evaluación de Riesgo")
+
+    col_m1, col_m2, col_m3 = st.columns(3)
+    
+    with col_m1:
+        st.metric(
+            label="Corriente Demandada Sostenida",
+            value=f"{i_total:.1f} A"
+        )
+    with col_m2:
+        st.metric(
+            label="Capacidad de Protección Actual",
+            value=f"{current_itm} A"
+        )
+    with col_m3:
+        st.metric(
+            label="Porcentaje de Carga Sostenida",
+            value=f"{health['load_percentage']}%",
+            delta=f"Límite seguro NOM (80%): {health['safe_limit_amps']:.1f} A",
+            delta_color="inverse" if health["load_percentage"] > 80 else "normal"
+        )
+
+    # Visualización de Alertas según Gravedad
+    if health["status"] == "PELIGRO":
+        st.error("🚨 **RIESGO CRÍTICO DETECTADO EN LA INSTALACIÓN**")
+    elif health["status"] == "ADVERTENCIA":
+        st.warning("⚠️ **ADVERTENCIA DE DEGRADACIÓN Y FATIGA TÉRMICA**")
+    else:
+        st.success("✅ **ACOMETIDA OPERANDO DENTRO DE PARÁMETROS SEGUROS**")
+
+    # Lista de Riesgos Detectados
+    st.markdown("**Hallazgos de la Evaluación:**")
+    for risk in health["risks"]:
+        st.write(f"- {risk}")
+
+    # Acción Correctiva Recomendada
+    st.info(f"💡 **Recomendación Técnica de Remediación:** {health['recommended_action']}")
+
+    # Sugerencia de Dimensión de Tablero
+    total_active_circuits = num_circuits_lighting + num_circuits_outlets + num_circuits_dedicated
+    suggested_panel_spaces = max(8, math.ceil(total_active_circuits * 1.25))
+
+    st.write(f"📌 **Espacios mínimos requeridos en Tablero Principal:** {suggested_panel_spaces} Polos (para {total_active_circuits} circuitos activos y reserva del 25%).")

@@ -102,3 +102,60 @@ def calculate_branch_circuits(
         "custom_plug_circuits": custom_plug_circuits,
         "custom_dedicated_circuits": custom_dedicated_circuits
     }
+
+def audit_service_entrance_health(
+    main_protection_type: str,    # "Fusible" o "ITM"
+    main_protection_amps: float,  # ej. 30, 40, 50
+    existing_wire_awg: int,       # ej. 10, 8, 6
+    total_continuous_amps: float  # Corriente continua calculada
+):
+    """
+    Evalúa la salud de la acometida existente según criterios NOM-001 / NEC.
+    """
+    # 1. Ampacidad del cable existente (a 75°C cobre)
+    ampacity_map = {14: 20, 12: 25, 10: 35, 8: 50, 6: 65, 4: 85}
+    wire_capacity = ampacity_map.get(existing_wire_awg, 30)
+
+    # 2. Regla del 80% para carga continua
+    safe_continuous_limit = main_protection_amps * 0.80
+    load_percentage = (total_continuous_amps / main_protection_amps) * 100
+
+    # 3. Diagnóstico de Riesgos
+    risks = []
+    status = "OK"  # OK, ADVERTENCIA, PELIGRO
+
+    # Riesgo A: Fatiga Térmica por regla del 80%
+    if total_continuous_amps > safe_continuous_limit:
+        status = "ADVERTENCIA"
+        risks.append(
+            f"Carga continua ({total_continuous_amps:.1f}A) supera el 80% de la capacidad "
+            f"nominal ({safe_continuous_limit:.1f}A). Riesgo de disparo en falso o degradación térmica."
+        )
+
+    # Riesgo B: Protección supera la capacidad del cable
+    if main_protection_amps > wire_capacity:
+        status = "PELIGRO"
+        risks.append(
+            f"Protección ({main_protection_amps}A) es mayor que la capacidad del cable "
+            f"Calibre {existing_wire_awg} AWG ({wire_capacity}A). ¡Riesgo de sobrecalentamiento e incendio del cableado!"
+        )
+
+    # Riesgo C: Uso de Fusibles con Cargas Continuas/Inductivas
+    if main_protection_type.upper() == "FUSIBLE":
+        if status != "PELIGRO":
+            status = "ADVERTENCIA"
+        risks.append(
+            "El uso de fusibles de cartucho genera resistencia por falso contacto en mordazas "
+            "y degradación progresiva del listón. Se recomienda reemplazar por Interruptor Termomagnético (ITM)."
+        )
+
+    return {
+        "status": status,
+        "load_percentage": round(load_percentage, 1),
+        "safe_limit_amps": safe_continuous_limit,
+        "risks": risks,
+        "recommended_action": (
+            f"Migrar a ITM de 40A con Alimentador Calibre 8 AWG."
+            if status != "OK" else "Acometida en parámetros óptimos."
+        )
+    }
