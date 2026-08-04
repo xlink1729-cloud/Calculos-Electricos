@@ -13,10 +13,11 @@ st.title("⚡ Calculadora de Circuitos Eléctricos (NOM-001 / NEC)")
 st.caption("Cálculo de ampacidad corregida, caída de tensión y circuitos de motores según normativa")
 
 # PESTAÑAS PRINCIPALES (Orden de variables alineado a los elementos de la lista)
-tab_alimentadores, tab_motores, tab_auto = st.tabs([
+tab_alimentadores, tab_motores, tab_auto, tab_derivados = st.tabs([
     "⚡ Alimentadores / Cargas Generales", 
     "🔄 Motores Eléctricos (Art. 430)",
-    "🎯 Selección Automática por Carga"
+    "🎯 Selección Automática por Carga",
+    "🏠 Circuitos Derivados (Art. 210/220)"
 ])
 
 
@@ -173,3 +174,35 @@ with tab_auto:
                 st.write(f"• **Caída de Voltaje Estimada:** `{res_auto['v_drop_percent']}%` ({res_auto['v_drop_volts']} V)")
             else:
                 st.error("❌ No se encontró un calibre estándar dentro del rango (14 AWG a 4/0) que cumpla con el límite de caída del 3%. Se requiere un alimentador especial o subir el voltaje de distribución.")
+
+# ==========================================
+# PESTAÑA 4: CIRCUITOS DERIVADOS RESIDENCIALES
+# ==========================================
+with tab_derivados:
+    st.header("🏠 Cálculo de Circuitos Derivados Residenciales")
+    st.caption("Determina la cantidad mínima de circuitos de alumbrado, pequeños aparatos y lavandería según el área de construcción (Art. 210 y 220 NOM-001/NEC).")
+
+    col_d1, col_d2 = st.columns([1, 1])
+
+    with col_d1:
+        st.subheader("1. Datos de la Vivienda")
+        area_input = st.number_input("Área de Construcción (m²)", min_value=10.0, value=100.0, step=10.0, key="area_dev")
+        extra_va = st.number_input("Cargas Específicas Adicionales (VA)", min_value=0.0, value=0.0, step=500.0, help="Microondas, aire acondicionado, etc.", key="extra_dev")
+        
+        btn_calc_dev = st.button("📊 Calcular Cuadro de Circuitos", use_container_width=True, key="btn_dev")
+
+    with col_d2:
+        if btn_calc_dev:
+            res_dev = calculate_branch_circuits(area_input, extra_va)
+            
+            st.subheader("📋 Resumen de Cargas y Circuitos Mínimos")
+            
+            st.metric("Carga Total Estimada", f"{res_dev['total_general_va']} VA", delta=f"{round(res_dev['total_general_va']/1000, 2)} kVA")
+            
+            st.markdown("---")
+            st.write(f"• **Carga Alumbrado/Contactos General (33 VA/m²):** `{res_dev['lighting_load_va']} VA`")
+            st.write(f"• **Circuitos Alumbrado (15A / 120V):** `{res_dev['min_lighting_circuits_15a']} circuito(s)`")
+            st.write(f"• **Circuitos Pequeños Aparatos / Cocina (20A - Art. 210.11):** `2 circuitos (3,000 VA)`")
+            st.write(f"• **Circuito Lavandería (20A - Art. 210.11):** `1 circuito (1,500 VA)`")
+            
+            st.success(f"✅ **Total Mínimo de Circuitos en Centro de Cargas:** **{res_dev['total_min_circuits']} Circuitos**")
