@@ -1,18 +1,21 @@
 import streamlit as st
 from utils.db_loader import get_ampacity_data, get_conductors_data, get_motors_data
+
+# Importaciones ajustadas exactamente a tu carpeta 'module'
 from module.ampacity import calculate_adjusted_ampacity
 from module.voltage_drop import calculate_voltage_drop
 from module.motor_calc import calculate_motor_circuit
+from module.auto_sizing import auto_select_circuit
 
 st.set_page_config(page_title="Cálculos Eléctricos NOM-001 / NEC", page_icon="⚡", layout="wide")
 
 st.title("⚡ Calculadora de Circuitos Eléctricos (NOM-001 / NEC)")
 st.caption("Cálculo de ampacidad corregida, caída de tensión y circuitos de motores según normativa")
 
-# PESTAÑAS PRINCIPALES
-tab_alimentadores, tab_motores , tab_auto= st.tabs([
+# PESTAÑAS PRINCIPALES (Orden de variables alineado a los elementos de la lista)
+tab_alimentadores, tab_motores, tab_auto = st.tabs([
     "⚡ Alimentadores / Cargas Generales", 
-    "🔄 Motores Eléctricos (Art. 430)"
+    "🔄 Motores Eléctricos (Art. 430)",
     "🎯 Selección Automática por Carga"
 ])
 
@@ -107,6 +110,7 @@ with tab_motores:
             st.write(f"• **Protección Máx. Cortocircuito / ITM (Art. 430.52):** `{motor_res['breaker_max_calc']} A`")
             st.write(f"• **Termomagnético Comercial Sugerido:** `{motor_res['breaker_suggested']} A`")
             st.write(f"• **Rango de Ajuste Sobrecarga (115%-125%):** `{motor_res['overload_range']}`")
+
 
 # ==========================================
 # PESTAÑA 3: SELECCIÓN AUTOMÁTICA
