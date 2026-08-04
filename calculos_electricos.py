@@ -10,10 +10,12 @@ st.title("⚡ Calculadora de Circuitos Eléctricos (NOM-001 / NEC)")
 st.caption("Cálculo de ampacidad corregida, caída de tensión y circuitos de motores según normativa")
 
 # PESTAÑAS PRINCIPALES
-tab_alimentadores, tab_motores = st.tabs([
+tab_alimentadores, tab_motores , tab_auto= st.tabs([
     "⚡ Alimentadores / Cargas Generales", 
     "🔄 Motores Eléctricos (Art. 430)"
+    "🎯 Selección Automática por Carga"
 ])
+
 
 # ==========================================
 # PESTAÑA 1: ALIMENTADORES Y CAÍDA DE TENSIÓN
