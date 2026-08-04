@@ -181,37 +181,64 @@ with tab_auto:
 # ==========================================
 with tab_derivados:
     st.header("🏠 Circuitos Derivados y Factor de Demanda (NOM-001)")
-    st.caption("Cálculo de cuadros de carga, cantidad de circuitos derivados y factor de demanda para acometida residencial (Art. 210 y 220).")
+    st.caption("Determina la carga conectada y demandada para proyectos de obra nueva o auditorías de instalaciones existentes.")
 
     col_d1, col_d2 = st.columns([1, 1])
 
     with col_d1:
-        st.subheader("1. Parámetros del Proyecto")
-        area_input = st.number_input("Área de Construcción (m²)", min_value=10.0, value=150.0, step=10.0, key="area_dev")
-        extra_va = st.number_input("Cargas Específicas Fijas (VA)", min_value=0.0, value=1500.0, step=500.0, help="Aires acondicionados, bombas, etc. (se calculan al 100%)", key="extra_dev")
+        st.subheader("1. Tipo de Evaluación")
         
+        calc_mode = st.radio(
+            "Selecciona el Modo de Cálculo",
+            ["Obra Nueva / Proyecto (Por área m² según NOM-001)", "Levantamiento Real / Instalación Existente"],
+            key="calc_mode_radio"
+        )
+        
+        is_survey = "Levantamiento Real" in calc_mode
+
+        if not is_survey:
+            area_input = st.number_input("Área de Construcción (m²)", min_value=10.0, value=150.0, step=10.0, key="area_dev")
+            lighting_real = 0.0
+        else:
+            area_input = 0.0
+            lighting_real = st.number_input("Carga Real Medida de Alumbrado y Contactos Generales (VA)", min_value=0.0, value=270.0, step=50.0, key="light_real_dev")
+
+        extra_va = st.number_input(
+            "Cargas Específicas Adicionales (VA)", 
+            min_value=0.0, 
+            value=3750.0, 
+            step=250.0, 
+            help="Suma de A/C, microondas, lavasecadora, etc.", 
+            key="extra_dev"
+        )
+
         btn_calc_dev = st.button("📊 Calcular Cuadro de Cargas", use_container_width=True, key="btn_dev")
 
     with col_d2:
         if btn_calc_dev:
-            res_dev = calculate_branch_circuits(area_input, extra_va)
-            
-            st.subheader("📋 Resumen del Cálculo Norma")
-            
+            res_dev = calculate_branch_circuits(
+                area_m2=area_input,
+                custom_appliances_va=extra_va,
+                is_existing_survey=is_survey,
+                lighting_real_va=lighting_real
+            )
+
+            st.subheader("📋 Resumen del Cálculo")
+
             col_m1, col_m2 = st.columns(2)
             with col_m1:
-                st.metric("Carga Instalada (Conectada)", f"{res_dev['general_connected_va'] + extra_va:.0f} VA")
+                st.metric("Carga Instalada (Conectada)", f"{res_dev['total_connected_va']:.0f} VA")
             with col_m2:
                 st.metric("Carga con Factor Demanda", f"{res_dev['total_demanded_va']:.0f} VA", delta="Para Acometida", delta_color="normal")
 
             st.markdown("---")
-            st.write(f"• **Alumbrado / Contactos ($33\\text{{ VA/m}}^2$):** `{res_dev['lighting_load_va']} VA`")
-            st.write(f"• **Pequeños Aparatos (2 x 1500 VA):** `{res_dev['small_appliances_va']} VA`")
-            st.write(f"• **Lavandería (1 x 1500 VA):** `{res_dev['laundry_va']} VA`")
-            st.write(f"• **Carga Demandada Aplicada (Tabla 220.42):** `{res_dev['demanded_general_va']} VA`")
-            
-            st.success(f"✅ **Distribución Mínima en Centro de Cargas:**\n"
-                       f"- **{res_dev['min_lighting_circuits_15a']}** circuito(s) de 15A (Alumbrado/General)\n"
-                       f"- **2** circuitos de 20A (Pequeños Aparatos - Cocina)\n"
-                       f"- **1** circuito de 20A (Lavandería)\n"
-                       f"👉 **Total Mínimo:** **{res_dev['total_min_circuits']} espacios/circuitos**")
+            if is_survey:
+                st.info("ℹ️ **Modo Levantamiento Real:** Se evalúa únicamente la carga físicamente instalada.")
+                st.write(f"• **Alumbrado / Contactos Reales:** `{res_dev['lighting_load_va']} VA`")
+                st.write(f"• **Cargas Específicas (A/C, Micro, etc.):** `{res_dev['custom_appliances_va']} VA`")
+            else:
+                st.write(f"• **Alumbrado / Contactos ($33\\text{{ VA/m}}^2$):** `{res_dev['lighting_load_va']} VA`")
+                st.write(f"• **Pequeños Aparatos (2x1500 VA):** `{res_dev['small_appliances_va']} VA`")
+                st.write(f"• **Lavandería (1x1500 VA):** `{res_dev['laundry_va']} VA`")
+
+            st.write(f"• **Carga Demandada Aplicada (Tabla 220.42):** `{res_dev['total_demanded_va']} VA`")
