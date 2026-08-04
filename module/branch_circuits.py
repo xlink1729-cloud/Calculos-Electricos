@@ -1,3 +1,4 @@
+import io
 import math
 from module.ampacity import calculate_adjusted_ampacity
 from module.voltage_drop import calculate_voltage_drop
@@ -5,7 +6,6 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
-import io
 
 def calculate_branch_circuits(
     area_m2: float = 0.0, 
