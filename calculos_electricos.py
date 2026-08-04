@@ -49,7 +49,7 @@ with col1:
     st.write(f"• **Factor por Agrupamiento ({num_conductors} cond.):** {amp_res['f_group']}")
     
     if current_amps > amp_res['adjusted_ampacity']:
-        st.error(⚠️ La corriente de carga ({current_amps} A) supera la ampacidad corregida ({amp_res['adjusted_ampacity']} A). ¡Aumenta el calibre!)
+        st.error(f"⚠️ La corriente de carga ({current_amps} A) supera la ampacidad corregida ({amp_res['adjusted_ampacity']} A). ¡Aumenta el calibre!")
     else:
         st.success("✅ El calibre soporta la corriente de carga asignada.")
 
