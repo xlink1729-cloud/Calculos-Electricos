@@ -623,13 +623,22 @@ with tab_solar:
             use_batteries = st.checkbox("¿Requiere Respaldo en Cargas Críticas / Sistema Híbrido?")
 
             if use_batteries:
+                # Verificar si existen datos calculados previamente en session_state
+                suggested_critical_va = 1500.0
+                if 'calculated_circuits' in st.session_state and st.session_state['calculated_circuits']:
+                    # Sumar solo circuitos marcados o cargas relevantes (ej. A/C + Refrigerador/Contactos)
+                    suggested_critical_va = sum(c['Carga (VA)'] for c in st.session_state['calculated_circuits'] if 'A/C' in c['Circuito'] or 'Contactos' in c['Circuito'])
+                    if suggested_critical_va == 0:
+                        suggested_critical_va = sum(c['Carga (VA)'] for c in st.session_state['calculated_circuits']) / 2
+
                 critical_va = st.number_input(
                     "Carga Crítica a Respaldar (VA):", 
                     min_value=100.0, 
-                    value=1500.0, 
+                    value=float(suggested_critical_va), 
                     step=100.0, 
-                    help="Ejemplo: Refrigerador (400VA) + A/C Recámara (950VA) + Luces/Internet (150VA)"
+                    help="Carga vinculada a la auditoría anterior o ingresada manualmente."
                 )
+                
                 backup_hrs = st.slider("Horas de Autonomía Requeridas:", min_value=1, max_value=24, value=6)
                 bat_type = st.selectbox("Tecnología de Batería:", ["Litio (LiFePO4) - DoD 85%", "Plomo-Ácido / GEL - DoD 50%"])
 
