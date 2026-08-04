@@ -1,6 +1,11 @@
 import math
 from module.ampacity import calculate_adjusted_ampacity
 from module.voltage_drop import calculate_voltage_drop
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+import io
 
 def calculate_branch_circuits(
     area_m2: float = 0.0, 
@@ -292,3 +297,147 @@ def calculate_battery_storage(
         "battery_type": battery_type,
         "dod_pct": int(dod * 100)
     }
+
+def generate_pdf_audit_report(audit_data: dict, balance_data: dict, solar_data: dict = None) -> bytes:
+    """
+    Genera un informe técnico de auditoría y diseño eléctrico en formato PDF conforme a la NOM-001.
+    Retorna los bytes del archivo PDF listo para su descarga.
+    """
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+
+    styles = getSampleStyleSheet()
+    
+    # Estilos personalizados
+    title_style = ParagraphStyle(
+        'DocTitle',
+        parent=styles['Title'],
+        fontSize=18,
+        leading=22,
+        textColor=colors.HexColor('#1E3A8A'),
+        alignment=0
+    )
+    h2_style = ParagraphStyle(
+        'Heading2',
+        parent=styles['Heading2'],
+        fontSize=13,
+        leading=16,
+        textColor=colors.HexColor('#1E40AF'),
+        spaceBefore=10,
+        spaceAfter=5
+    )
+    body_style = ParagraphStyle(
+        'Body',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor('#374151')
+    )
+    alert_style = ParagraphStyle(
+        'Alert',
+        parent=body_style,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#DC2626') if audit_data.get('status') == 'PELIGRO' else colors.HexColor('#D97706')
+    )
+
+    story = []
+
+    # --- Encabezado ---
+    story.append(Paragraph("<b>DICTAMEN TÉCNICO DE AUDITORÍA Y DISEÑO ELÉCTRICO</b>", title_style))
+    story.append(Paragraph("Norma Oficial Mexicana NOM-001-SEDE | Evaluación Residencial", body_style))
+    story.append(Spacer(1, 10))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#1E3A8A'), spaceAfter=15))
+
+    # --- Resumen de Auditoría ---
+    story.append(Paragraph("1. Diagnóstico de Salud de la Acometida", h2_style))
+    
+    audit_table_data = [
+        ["Parámetro", "Valor Evaluado", "Criterio de Norma"],
+        ["Corriente Demandada Sostenida", f"{audit_data.get('i_total', 0):.1f} A", "Carga Real de Operación"],
+        ["Capacidad de Protección", f"{audit_data.get('main_amps', 0)} A", "Límite Continuo NOM (80%)"],
+        ["Porcentaje de Carga", f"{audit_data.get('load_percentage', 0)}%", "< 80% Seguro / > 80% Riesgo Térmico"],
+        ["Estado del Sistema", audit_data.get('status', 'N/A'), "Dictamen de Seguridad"]
+    ]
+
+    t_audit = Table(audit_table_data, colWidths=[180, 150, 200])
+    t_audit.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F3F4F6')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+    ]))
+    story.append(t_audit)
+    story.append(Spacer(1, 10))
+
+    # Riesgos y Recomendaciones
+    story.append(Paragraph("<b>Hallazgos de Riesgo Térmico:</b>", body_style))
+    for risk in audit_data.get('risks', []):
+        story.append(Paragraph(f"• {risk}", alert_style))
+
+    story.append(Spacer(1, 5))
+    story.append(Paragraph(f"<b>Acción Correctiva Sugerida:</b> {audit_data.get('recommended_action', 'N/A')}", body_style))
+    story.append(Spacer(1, 15))
+
+    # --- Cuadro de Balanceo de Fases ---
+    if balance_data:
+        story.append(Paragraph("2. Cuadro de Cargas y Balanceo de Fases (2F-1N)", h2_style))
+        
+        balance_table_data = [
+            ["Fase A (VA)", "Fase B (VA)", "Carga Total (VA)", "Desbalance (%)", "Estado NOM"],
+            [
+                f"{balance_data.get('va_phase_a', 0):.0f} VA",
+                f"{balance_data.get('va_phase_b', 0):.0f} VA",
+                f"{balance_data.get('total_va', 0):.0f} VA",
+                f"{balance_data.get('unbalance_pct', 0)}%",
+                balance_data.get('status', 'N/A')
+            ]
+        ]
+        t_balance = Table(balance_table_data, colWidths=[100, 100, 110, 110, 110])
+        t_balance.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F3F4F6')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(t_balance)
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(f"<i>Nota: {balance_data.get('message', '')}</i>", body_style))
+        story.append(Spacer(1, 15))
+
+    # --- Dimensión Solar (Si aplica) ---
+    if solar_data:
+        story.append(Paragraph("3. Dimensionamiento Fotovoltaico (NOM Art. 690)", h2_style))
+        solar_table_data = [
+            ["Potencia Instalada", "N° Paneles", "Generación Mensual", "Cobertura", "Protección AC"],
+            [
+                f"{solar_data.get('installed_capacity_kwp', 0)} kWp",
+                f"{solar_data.get('num_panels', 0)} Módulos",
+                f"{solar_data.get('monthly_generation_kwh', 0)} kWh/mes",
+                f"{solar_data.get('coverage_pct', 0)}%",
+                f"{solar_data.get('min_ac_protection_amps', 0)} A"
+            ]
+        ]
+        t_solar = Table(solar_table_data, colWidths=[100, 90, 120, 100, 120])
+        t_solar.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F3F4F6')),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(t_solar)
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer.getvalue()
