@@ -592,3 +592,56 @@ with tab_solar:
                 "- Calibre de conductores AC dimensionado al 125% de la corriente nominal del inversor.\n"
                 "- Inversor con certificación **UL 1741 / IEEE 1547** para desconexión anti-isla."
             )
+
+        # --- SECCIÓN 4: AUDITORÍA DE ESPACIO Y BATERÍAS ---
+        st.markdown("---")
+        st.subheader("4. Auditoría de Espacio en Azotea y Respaldo por Baterías (NOM Art. 706)")
+
+        col_sub1, col_sub2 = st.columns(2)
+
+        with col_sub1:
+            st.markdown("**📐 Levantamiento Físico en Azotea:**")
+            area_available = st.number_input(
+                "Área útil disponible en Azotea (m²):", 
+                min_value=0.0, 
+                value=35.0, 
+                step=5.0,
+                help="Espacio plano o inclinado sin sombras de tinacos, pretiles o A/C."
+            )
+            
+            # Área requerida estimada (2.6 m² aprox. por panel de 550Wp)
+            required_area = solar_res["num_panels"] * 2.6
+            
+            st.write(f"• **Área requerida por los {solar_res['num_panels']} paneles:** {required_area:.1f} m²")
+            if area_available >= required_area:
+                st.success(f"✅ Espacio suficiente ({area_available - required_area:.1f} m² libres para pasillos de mantenimiento).")
+            else:
+                st.error(f"⚠️ Espacio insuficiente en azotea. Faltan {required_area - area_available:.1f} m² o se requiere usar módulos de mayor potencia.")
+
+        with col_sub2:
+            st.markdown("**🔋 Sistema de Almacenamiento con Baterías (Opcional):**")
+            use_batteries = st.checkbox("¿Requiere Respaldo en Cargas Críticas / Sistema Híbrido?")
+
+            if use_batteries:
+                critical_va = st.number_input(
+                    "Carga Crítica a Respaldar (VA):", 
+                    min_value=100.0, 
+                    value=1500.0, 
+                    step=100.0, 
+                    help="Ejemplo: Refrigerador (400VA) + A/C Recámara (950VA) + Luces/Internet (150VA)"
+                )
+                backup_hrs = st.slider("Horas de Autonomía Requeridas:", min_value=1, max_value=24, value=6)
+                bat_type = st.selectbox("Tecnología de Batería:", ["Litio (LiFePO4) - DoD 85%", "Plomo-Ácido / GEL - DoD 50%"])
+
+                # Lógica interna de cálculo de baterías
+                dod = 0.85 if "Litio" in bat_type else 0.50
+                required_wh = (critical_va * backup_hrs) / (dod * 0.90)
+                capacity_ah_48v = required_wh / 48.0
+                num_modules = math.ceil((required_wh / 1000.0) / 4.8)  # Módulos estándar de 4.8 kWh (48V 100Ah)
+
+                st.info(
+                    f"📦 **Banco de Baterías Requerido (48V DC):**\n"
+                    f"- **Energía Total Requerida:** {required_wh / 1000.0:.2f} kWh ({capacity_ah_48v:.1f} Ah @ 48V)\n"
+                    f"- **Módulos Recomendados:** {num_modules} Batería(s) de Litio 48V 100Ah (4.8 kWh c/u)\n"
+                    f"- **Profundidad de Descarga (DoD):** {int(dod * 100)}%"
+                )

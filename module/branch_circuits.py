@@ -261,3 +261,34 @@ def calculate_solar_pv_system(
         "ac_current_220v": round(ac_current_220v, 1),
         "min_ac_protection_amps": round(min_ac_protection_amps, 1)
     }
+
+def calculate_battery_storage(
+    critical_loads_va: float,
+    backup_hours: float,
+    battery_type: str = "Litio (LiFePO4)",
+    system_voltage: float = 48.0
+):
+    """
+    Calcula la capacidad del banco de baterías según cargas críticas y horas de respaldo (NOM Art. 706).
+    """
+    # Profundidad de descarga (DoD) y eficiencia de conversión
+    dod = 0.85 if "Litio" in battery_type else 0.50
+    efficiency = 0.90
+
+    # Energía total requerida en Wh
+    required_wh = (critical_loads_va * backup_hours) / (dod * efficiency)
+    
+    # Capacidad en Ampere-hora (Ah) al voltaje del sistema
+    capacity_ah = required_wh / system_voltage
+
+    # Ejemplo comercial: Baterías de Litio 48V @ 100Ah (4.8 kWh c/u)
+    single_battery_kwh = (system_voltage * 100) / 1000.0
+    num_batteries = math.ceil((required_wh / 1000.0) / single_battery_kwh)
+
+    return {
+        "required_kwh": round(required_wh / 1000.0, 2),
+        "capacity_ah": round(capacity_ah, 1),
+        "num_batteries": num_batteries,
+        "battery_type": battery_type,
+        "dod_pct": int(dod * 100)
+    }
