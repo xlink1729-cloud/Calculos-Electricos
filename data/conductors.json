@@ -13,6 +13,7 @@
     "4/0": { "area_mm2": 107.20, "diameter_mm": 13.39, "resistance_pvc_ohm_km": 0.20, "reactance_pvc_ohm_km": 0.138 },
     "250": { "area_mm2": 127.00, "diameter_mm": 14.61, "resistance_pvc_ohm_km": 0.17, "reactance_pvc_ohm_km": 0.138 }
   },
+  
   "aluminio": {
     "12":  { "area_mm2": 3.31, "diameter_mm": 2.05, "resistance_pvc_ohm_km": 10.50, "reactance_pvc_ohm_km": 0.177 },
     "10":  { "area_mm2": 5.26, "diameter_mm": 2.59, "resistance_pvc_ohm_km": 6.56,  "reactance_pvc_ohm_km": 0.164 },

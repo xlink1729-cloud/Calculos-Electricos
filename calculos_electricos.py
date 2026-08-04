@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.db_loader import get_ampacity_data, get_conductors_data
-from module.ampacity import calculate_adjusted_ampacity
-from module.voltage_drop import calculate_voltage_drop
+from modules.ampacity import calculate_adjusted_ampacity  # <-- Corregido: "modules" en plural
+from modules.voltage_drop import calculate_voltage_drop  # <-- Corregido: "modules" en plural
 
 st.set_page_config(page_title="Cálculos Eléctricos NOM-001 / NEC", page_icon="⚡", layout="wide")
 
@@ -24,7 +24,8 @@ awg = st.sidebar.selectbox("Calibre del Conductor (AWG / kcmil)", options=availa
 temp_rating = st.sidebar.selectbox("Aislamiento / Temperatura de Terminales", options=["60C", "75C", "90C"])
 
 st.sidebar.subheader("Condiciones de Instalación")
-ambient_temp = st.sidebar.slider("Temperatura Ambiente (°C)", min_value=21, max_value=50, value=30, step=1)
+# Cambiamos el nombre de la variable para que sea homogéneo
+ambient_temp_c = st.sidebar.slider("Temperatura Ambiente (°C)", min_value=21, max_value=50, value=30, step=1)
 num_conductors = st.sidebar.number_input("Número de Conductores Portadores de Corriente", min_value=1, max_value=40, value=3)
 
 st.sidebar.subheader("Carga y Distancia")
@@ -37,7 +38,7 @@ power_factor = st.sidebar.slider("Factor de Potencia (FP)", min_value=0.70, max_
 # --- PANEL PRINCIPAL DE RESULTADOS ---
 col1, col2 = st.columns(2)
 
-# CÁLCULO 1: AMPACIDAD
+# CÁLCULO 1: AMPACIDAD (Pasamos la variable ambient_temp_c corregida)
 amp_res = calculate_adjusted_ampacity(material, awg, temp_rating, ambient_temp_c, num_conductors)
 
 with col1:
@@ -45,7 +46,7 @@ with col1:
     st.metric("Ampacidad Corregida", f"{amp_res['adjusted_ampacity']} A")
     
     st.write(f"• **Ampacidad Base (Tabla 310.16):** {amp_res['base_ampacity']} A")
-    st.write(f"• **Factor por Temp. Ambiente ({ambient_temp}°C):** {amp_res['f_temp']}")
+    st.write(f"• **Factor por Temp. Ambiente ({ambient_temp_c}°C):** {amp_res['f_temp']}")
     st.write(f"• **Factor por Agrupamiento ({num_conductors} cond.):** {amp_res['f_group']}")
     
     if current_amps > amp_res['adjusted_ampacity']:
@@ -70,4 +71,4 @@ with col2:
     elif vd_res['v_drop_percent'] <= 5.0:
         st.warning("⚠️ Caída entre 3% y 5%. Aceptable solo si es el alimentador total + derivado combinados.")
     else:
-        st.error("❌ Caída de voltaje superior al 5%. Se recomienda subir de calibre para evitar pérdidas exesivas.")
+        st.error("❌ Caída de voltaje superior al 5%. Se recomienda subir de calibre para evitar pérdidas excesivas.")
