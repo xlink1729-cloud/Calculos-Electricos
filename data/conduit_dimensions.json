@@ -1,0 +1,35 @@
+{
+  "EMT": {
+    "1/2":   { "internal_diameter_mm": 15.80, "total_area_mm2": 196.0 },
+    "3/4":   { "internal_diameter_mm": 20.90, "total_area_mm2": 343.0 },
+    "1":     { "internal_diameter_mm": 26.60, "total_area_mm2": 556.0 },
+    "1 1/4": { "internal_diameter_mm": 35.10, "total_area_mm2": 968.0 },
+    "1 1/2": { "internal_diameter_mm": 40.90, "total_area_mm2": 1314.0 },
+    "2":     { "internal_diameter_mm": 52.50, "total_area_mm2": 2165.0 },
+    "2 1/2": { "internal_diameter_mm": 69.30, "total_area_mm2": 3771.0 },
+    "3":     { "internal_diameter_mm": 85.20, "total_area_mm2": 5701.0 },
+    "4":     { "internal_diameter_mm": 110.10, "total_area_mm2": 9521.0 }
+  },
+  "PVC_SCH40": {
+    "1/2":   { "internal_diameter_mm": 15.30, "total_area_mm2": 184.0 },
+    "3/4":   { "internal_diameter_mm": 20.30, "total_area_mm2": 324.0 },
+    "1":     { "internal_diameter_mm": 26.00, "total_area_mm2": 531.0 },
+    "1 1/4": { "internal_diameter_mm": 34.50, "total_area_mm2": 935.0 },
+    "1 1/2": { "internal_diameter_mm": 40.30, "total_area_mm2": 1276.0 },
+    "2":     { "internal_diameter_mm": 51.70, "total_area_mm2": 2099.0 },
+    "2 1/2": { "internal_diameter_mm": 62.00, "total_area_mm2": 3019.0 },
+    "3":     { "internal_diameter_mm": 77.20, "total_area_mm2": 4681.0 },
+    "4":     { "internal_diameter_mm": 101.60, "total_area_mm2": 8107.0 }
+  },
+  "RMC": {
+    "1/2":   { "internal_diameter_mm": 16.10, "total_area_mm2": 204.0 },
+    "3/4":   { "internal_diameter_mm": 21.20, "total_area_mm2": 353.0 },
+    "1":     { "internal_diameter_mm": 27.00, "total_area_mm2": 573.0 },
+    "1 1/4": { "internal_diameter_mm": 35.70, "total_area_mm2": 1001.0 },
+    "1 1/2": { "internal_diameter_mm": 41.60, "total_area_mm2": 1359.0 },
+    "2":     { "internal_diameter_mm": 52.90, "total_area_mm2": 2198.0 },
+    "2 1/2": { "internal_diameter_mm": 63.20, "total_area_mm2": 3137.0 },
+    "3":     { "internal_diameter_mm": 78.50, "total_area_mm2": 4840.0 },
+    "4":     { "internal_diameter_mm": 102.90, "total_area_mm2": 8316.0 }
+  }
+}

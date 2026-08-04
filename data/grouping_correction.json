@@ -1,0 +1,11 @@
+{
+  "grouping_factors": [
+    { "min_conductors": 1, "max_conductors": 3, "factor": 1.00 },
+    { "min_conductors": 4, "max_conductors": 6, "factor": 0.80 },
+    { "min_conductors": 7, "max_conductors": 9, "factor": 0.70 },
+    { "min_conductors": 10, "max_conductors": 20, "factor": 0.50 },
+    { "min_conductors": 21, "max_conductors": 30, "factor": 0.45 },
+    { "min_conductors": 31, "max_conductors": 40, "factor": 0.40 },
+    { "min_conductors": 41, "max_conductors": 999, "factor": 0.35 }
+  ]
+}

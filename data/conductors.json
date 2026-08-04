@@ -1,0 +1,29 @@
+{
+  "cobre": {
+    "14":  { "area_mm2": 2.08, "diameter_mm": 1.63, "resistance_pvc_ohm_km": 10.17, "reactance_pvc_ohm_km": 0.190 },
+    "12":  { "area_mm2": 3.31, "diameter_mm": 2.05, "resistance_pvc_ohm_km": 6.40,  "reactance_pvc_ohm_km": 0.177 },
+    "10":  { "area_mm2": 5.26, "diameter_mm": 2.59, "resistance_pvc_ohm_km": 3.97,  "reactance_pvc_ohm_km": 0.164 },
+    "8":   { "area_mm2": 8.37, "diameter_mm": 3.26, "resistance_pvc_ohm_km": 2.56,  "reactance_pvc_ohm_km": 0.171 },
+    "6":   { "area_mm2": 13.30, "diameter_mm": 4.11, "resistance_pvc_ohm_km": 1.61, "reactance_pvc_ohm_km": 0.167 },
+    "4":   { "area_mm2": 21.15, "diameter_mm": 5.18, "resistance_pvc_ohm_km": 1.02, "reactance_pvc_ohm_km": 0.157 },
+    "2":   { "area_mm2": 33.62, "diameter_mm": 6.54, "resistance_pvc_ohm_km": 0.62, "reactance_pvc_ohm_km": 0.154 },
+    "1/0": { "area_mm2": 53.49, "diameter_mm": 9.47, "resistance_pvc_ohm_km": 0.39, "reactance_pvc_ohm_km": 0.148 },
+    "2/0": { "area_mm2": 67.43, "diameter_mm": 10.62, "resistance_pvc_ohm_km": 0.31, "reactance_pvc_ohm_km": 0.144 },
+    "3/0": { "area_mm2": 85.01, "diameter_mm": 11.91, "resistance_pvc_ohm_km": 0.25, "reactance_pvc_ohm_km": 0.141 },
+    "4/0": { "area_mm2": 107.20, "diameter_mm": 13.39, "resistance_pvc_ohm_km": 0.20, "reactance_pvc_ohm_km": 0.138 },
+    "250": { "area_mm2": 127.00, "diameter_mm": 14.61, "resistance_pvc_ohm_km": 0.17, "reactance_pvc_ohm_km": 0.138 }
+  },
+  "aluminio": {
+    "12":  { "area_mm2": 3.31, "diameter_mm": 2.05, "resistance_pvc_ohm_km": 10.50, "reactance_pvc_ohm_km": 0.177 },
+    "10":  { "area_mm2": 5.26, "diameter_mm": 2.59, "resistance_pvc_ohm_km": 6.56,  "reactance_pvc_ohm_km": 0.164 },
+    "8":   { "area_mm2": 8.37, "diameter_mm": 3.26, "resistance_pvc_ohm_km": 4.20,  "reactance_pvc_ohm_km": 0.171 },
+    "6":   { "area_mm2": 13.30, "diameter_mm": 4.11, "resistance_pvc_ohm_km": 2.62, "reactance_pvc_ohm_km": 0.167 },
+    "4":   { "area_mm2": 21.15, "diameter_mm": 5.18, "resistance_pvc_ohm_km": 1.64, "reactance_pvc_ohm_km": 0.157 },
+    "2":   { "area_mm2": 33.62, "diameter_mm": 6.54, "resistance_pvc_ohm_km": 1.02, "reactance_pvc_ohm_km": 0.154 },
+    "1/0": { "area_mm2": 53.49, "diameter_mm": 9.47, "resistance_pvc_ohm_km": 0.66, "reactance_pvc_ohm_km": 0.148 },
+    "2/0": { "area_mm2": 67.43, "diameter_mm": 10.62, "resistance_pvc_ohm_km": 0.52, "reactance_pvc_ohm_km": 0.144 },
+    "3/0": { "area_mm2": 85.01, "diameter_mm": 11.91, "resistance_pvc_ohm_km": 0.43, "reactance_pvc_ohm_km": 0.141 },
+    "4/0": { "area_mm2": 107.20, "diameter_mm": 13.39, "resistance_pvc_ohm_km": 0.33, "reactance_pvc_ohm_km": 0.138 },
+    "250": { "area_mm2": 127.00, "diameter_mm": 14.61, "resistance_pvc_ohm_km": 0.28, "reactance_pvc_ohm_km": 0.138 }
+  }
+}
