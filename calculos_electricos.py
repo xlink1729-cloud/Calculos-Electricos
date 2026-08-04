@@ -38,7 +38,7 @@ power_factor = st.sidebar.slider("Factor de Potencia (FP)", min_value=0.70, max_
 col1, col2 = st.columns(2)
 
 # CÁLCULO 1: AMPACIDAD
-amp_res = calculate_adjusted_ampacity(material, awg, temp_rating, ambient_temp, num_conductors)
+amp_res = calculate_adjusted_ampacity(material, awg, temp_rating, ambient_temp_c, num_conductors)
 
 with col1:
     st.subheader("1. Ampacidad del Conductor")
