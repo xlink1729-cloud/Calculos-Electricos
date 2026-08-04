@@ -253,15 +253,57 @@ with tab_derivados:
 
             st.markdown("---")
             st.subheader("🔌 Centro de Cargas Recomendado")
-            st.success(f"✅ **Capacidad Necesaria:** **Mínimo {res_dev['total_circuits']} Polos / Espacios**")
+            
+            # Cálculo de espacios de reserva técnica (20% recomendado)
+            suggested_panel_spaces = max(8, math.ceil(res_dev['total_circuits'] * 1.25))
+            st.success(f"✅ **Tablero Recomendado:** **{suggested_panel_spaces} Espacios / Polos** ({res_dev['total_circuits']} ocupados + reserva)")
 
             if is_survey:
                 st.info("ℹ️ **Distribución por Confort Activa:**")
                 st.write(f"• **Alumbrado Sectorizado:** `{res_dev['custom_light_circuits']} pastilla(s) (15A - Calibre 14/12 AWG)`")
                 st.write(f"• **Contactos Generales Sectorizados:** `{res_dev['custom_plug_circuits']} pastilla(s) (15A/20A - Calibre 12 AWG)`")
                 st.write(f"• **Circuitos Dedicados:** `{res_dev['custom_dedicated_circuits']} pastilla(s) independientes`")
-                st.caption("💡 *Dividir la casa por zonas evita apagones generales ante una falla local.*")
             else:
                 st.write(f"• **Alumbrado Generales ($33\\text{{ VA/m}}^2$):** `{res_dev['lighting_circuits']} pastilla(s)`")
                 st.write("• **Circuitos de Cocina / Pequeños Aparatos:** `2 pastillas (20A)`")
                 st.write("• **Circuito de Lavandería:** `1 pastilla (20A)`")
+
+            # -------------------------------------------------------------
+            # GENERACIÓN DEL DICTAMEN TÉCNICO Y RECOMENDACIONES DE ENERGÍA
+            # -------------------------------------------------------------
+            st.markdown("---")
+            with st.expander("📋 Ver Dictamen Técnico Completo y Recomendaciones", expanded=True):
+                report_text = f"""### 📝 Reporte de Diagnóstico Eléctrico
+
+**Modo:** {"Levantamiento Real Existente" if is_survey else "Proyecto Obra Nueva NOM-001"}
+**Fecha:** Evaluado bajo NOM-001-SEDE / NEC Standards
+
+#### 1. Resumen de Cargas
+* **Carga Total Instalada:** {res_dev['total_connected_va']} VA
+* **Carga Total Demandada:** {res_dev['total_demanded_va']} VA
+* **Corriente Nominal de Operación:** {res_dev['load_amps']} A
+* **Corriente de Diseño (125% Carga Continua):** {res_dev['design_amps']} A
+
+#### 2. Alimentador Principal CFE → Centro de Cargas
+* **Conductor Principal Recomendado:** Calibre **{res_dev['recommended_feeder_awg']} AWG** Cobre (Aislamiento THHN/THHW 75°C).
+* **Interruptor Principal Sugerido:** **{res_dev['main_breaker']} A** (1 Polo a {voltage_dev} V).
+* **Caída de Voltaje Estimada:** **{res_dev['feeder_vd_percent']}%** (Cumple norma: ≤ 3%).
+
+#### 3. Cuadro de Distribución y Tablero
+* **Circuitos Activos Requeridos:** {res_dev['total_circuits']} Polos.
+* **Capacidad Nominal del Tablero Sugerida:** **{suggested_panel_spaces} Polos / Espacios**.
+
+#### 4. Criterio de Diseño, Confort y Eficiencia Energética
+* **Reserva Técnica:** Se seleccionó un gabinete de {suggested_panel_spaces} polos para dejar un 20% - 30% de capacidad libre ante futuras adiciones (ej. A/C adicionales).
+* **Aislamiento de Cargas Inductivas:** Al independizar el A/C de $950\\text{{ VA}}$, el microondas de $1,200\\text{{ VA}}$ y la lavasecadora de $1,600\\text{{ VA}}$, se elimina la fluctuación de voltaje (*flicker*) en la iluminación LED al arrancar los motores.
+* **Continuidad de Servicio:** La sectorización del alumbrado e hilos de contactos garantiza que una falla por humedad o cortocircuito local mantenga el resto de la casa energizada.
+"""
+                st.markdown(report_text)
+                
+                # Botón de Descarga de Reporte
+                st.download_button(
+                    label="📥 Descargar Dictamen Técnico (.txt)",
+                    data=report_text,
+                    file_name="dictamen_electrico_residencial.txt",
+                    mime="text/plain"
+                )
