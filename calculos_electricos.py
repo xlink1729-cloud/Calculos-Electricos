@@ -7,7 +7,7 @@ from module.ampacity import calculate_adjusted_ampacity
 from module.voltage_drop import calculate_voltage_drop
 from module.motor_calc import calculate_motor_circuit
 from module.auto_sizing import auto_select_circuit
-from module.branch_circuits import calculate_branch_circuits, audit_service_entrance_health
+from module.branch_circuits import (calculate_branch_circuits, audit_service_entrance_health, calculate_phase_balance)
 
 st.set_page_config(page_title="Cálculos Eléctricos NOM-001 / NEC", page_icon="⚡", layout="wide")
 
@@ -15,12 +15,13 @@ st.title("⚡ Calculadora de Circuitos Eléctricos (NOM-001 / NEC)")
 st.caption("Cálculo de ampacidad corregida, caída de tensión y circuitos de motores según normativa")
 
 # PESTAÑAS PRINCIPALES (Orden de variables alineado a los elementos de la lista)
-tab_alimentadores, tab_motores, tab_auto, tab_derivados, tab_auditoria = st.tabs([
+tab_alimentadores, tab_motores, tab_auto, tab_derivados, tab_auditoria, tab_balanceo = st.tabs([
     "⚡ Alimentadores / Cargas Generales", 
     "🔄 Motores Eléctricos (Art. 430)",
     "🎯 Selección Automática por Carga",
     "🏠 Circuitos Derivados (Art. 210/220)",
-    "🔍 Levantamiento Real / Auditoría"
+    "🔍 Levantamiento Real / Auditoría",
+    "⚖️ Cuadro de Cargas y Balanceo 2F"
 ])
 
 
@@ -426,3 +427,70 @@ with tab_auditoria:
     suggested_panel_spaces = max(8, math.ceil(total_active_circuits * 1.25))
 
     st.write(f"📌 **Espacios mínimos requeridos en Tablero Principal:** {suggested_panel_spaces} Polos (para {total_active_circuits} circuitos activos y reserva del 25%).")
+
+# ==========================================
+# PESTAÑA 6: CUADRO DE CARGAS Y BALANCEO (2F)
+# ==========================================
+with tab_balanceo:
+    st.header("⚖️ Cuadro de Cargas y Balanceo de Fases (Sistemas 2F-1N / 220V)")
+    st.markdown("Distribución de circuitos derivados para minimizar el retorno por el conductor neutro.")
+
+    st.subheader("1. Configuración de Circuitos Derivados")
+
+    # Ejemplo de tabla dinámica/editable para definir cargas y asignar fase
+    default_circuits = [
+        {"Circuito": "C1 - Alumbrado Social", "Carga (VA)": 600, "Fase": "A"},
+        {"Circuito": "C2 - Alumbrado Privado", "Carga (VA)": 500, "Fase": "B"},
+        {"Circuito": "C3 - Contactos Recámaras", "Carga (VA)": 1200, "Fase": "A"},
+        {"Circuito": "C4 - Contactos Sala/Comedor", "Carga (VA)": 1200, "Fase": "B"},
+        {"Circuito": "C5 - A/C Minisplit Recámara", "Carga (VA)": 950, "Fase": "A"},
+        {"Circuito": "C6 - Horno Microondas", "Carga (VA)": 1200, "Fase": "B"},
+        {"Circuito": "C7 - Lavasecadora", "Carga (VA)": 1600, "Fase": "A"},
+    ]
+
+    edited_df = st.data_editor(
+        default_circuits,
+        column_config={
+            "Circuito": st.column_config.TextColumn("Nombre / Descripción", required=True),
+            "Carga (VA)": st.column_config.NumberColumn("Potencia (VA)", min_value=0, max_value=10000, step=100),
+            "Fase": st.column_config.SelectboxColumn("Asignación de Fase", options=["A", "B", "AB (220V)"], required=True)
+        },
+        num_rows="dynamic",
+        use_container_width=True
+    )
+
+    # Convertir datos editados a lista interna para el cálculo
+    formatted_circuits = [
+        {"name": row["Circuito"], "va": float(row["Carga (VA)"]), "phase": row["Fase"]}
+        for row in edited_df
+    ]
+
+    # --- Ejecutar Cálculo de Balanceo ---
+    balance = calculate_phase_balance(formatted_circuits)
+
+    st.markdown("---")
+    st.subheader("2. Resultados del Balanceo de Fases")
+
+    col_b1, col_b2, col_b3, col_b4 = st.columns(4)
+
+    with col_b1:
+        st.metric("Carga Fase A", f"{balance['va_phase_a']:.0f} VA", f"{(balance['va_phase_a']/120):.1f} A @ 120V")
+    with col_b2:
+        st.metric("Carga Fase B", f"{balance['va_phase_b']:.0f} VA", f"{(balance['va_phase_b']/120):.1f} A @ 120V")
+    with col_b3:
+        st.metric("Carga Total Instalada", f"{balance['total_va']:.0f} VA")
+    with col_b4:
+        st.metric(
+            "Desbalance de Fases", 
+            f"{balance['unbalance_pct']}%",
+            delta="Límite NOM: < 15%",
+            delta_color="inverse" if balance['unbalance_pct'] > 15 else "normal"
+        )
+
+    # Mensajes de Diagnóstico
+    if balance["status"] == "CRÍTICO":
+        st.error(f"🚨 **DESBALANCE CRÍTICO:** {balance['message']}")
+    elif balance["status"] == "ACEPTABLE":
+        st.warning(f"⚠️ **DESBALANCE ACEPTABLE:** {balance['message']}")
+    else:
+        st.success(f"✅ **SISTEMA BALANCEADO:** {balance['message']}")

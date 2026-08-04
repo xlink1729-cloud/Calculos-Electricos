@@ -159,3 +159,48 @@ def audit_service_entrance_health(
             if status != "OK" else "Acometida en parámetros óptimos."
         )
     }
+
+def calculate_phase_balance(circuits_data: list):
+    """
+    Recibe una lista de diccionarios con la estructura:
+    [{'name': 'C1 - Alumbrado', 'va': 1200, 'phase': 'A'}, ...]
+    
+    Retorna el balance de cargas entre Fase A y Fase B.
+    """
+    va_phase_a = sum(c['va'] for c in circuits_data if c['phase'] == 'A')
+    va_phase_b = sum(c['va'] for c in circuits_data if c['phase'] == 'B')
+    va_220v = sum(c['va'] for c in circuits_data if c['phase'] == 'AB')  # Cargas a 220V (usan ambas fases)
+
+    # Las cargas a 220V aportan la mitad de su potencia a cada fase para el balance
+    total_phase_a = va_phase_a + (va_220v / 2)
+    total_phase_b = va_phase_b + (va_220v / 2)
+    total_system_va = total_phase_a + total_phase_b
+
+    max_phase = max(total_phase_a, total_phase_b)
+    min_phase = min(total_phase_a, total_phase_b)
+
+    # Cálculo del desbalance en porcentaje (%)
+    if max_phase > 0:
+        unbalance_pct = ((max_phase - min_phase) / max_phase) * 100
+    else:
+        unbalance_pct = 0.0
+
+    # Estado según la Norma (< 10% Excelente, 10-15% Aceptable, > 15% Desbalanceado)
+    if unbalance_pct <= 10.0:
+        status = "EXCELENTE"
+        msg = "Las fases están perfectamente equilibradas conforme a NOM-001."
+    elif unbalance_pct <= 15.0:
+        status = "ACEPTABLE"
+        msg = "Desbalance dentro del límite aceptable (<15%), pero optimizable."
+    else:
+        status = "CRÍTICO"
+        msg = f"Desbalance excesivo ({unbalance_pct:.1f}%). Riesgo de sobrecalentamiento e incremento de corriente en el Neutro."
+
+    return {
+        "va_phase_a": total_phase_a,
+        "va_phase_b": total_phase_b,
+        "total_va": total_system_va,
+        "unbalance_pct": round(unbalance_pct, 1),
+        "status": status,
+        "message": msg
+    }
