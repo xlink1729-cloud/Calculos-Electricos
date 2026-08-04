@@ -23,3 +23,8 @@ def get_conduit_data():
     path = os.path.join(BASE_DIR, "data", "conduit_dimensions.json")
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+def get_motors_data():
+    path = os.path.join(BASE_DIR, "data", "motors_flc.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
