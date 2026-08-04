@@ -536,7 +536,7 @@ with tab_solar:
         )
 
     # Parámetros avanzados en expansor opcional
-    with st.expansor("⚙️ Parámetros Avanzados del Sistema (Eficiencia y Pérdidas)"):
+    with st.expander("⚙️ Parámetros Avanzados del Sistema (Eficiencia y Pérdidas)"):
         efficiency_factor = st.slider(
             "Factor de Rendimiento Global (Performance Ratio):",
             min_value=0.70,
