@@ -111,13 +111,12 @@ with tab_motores:
             st.write(f"• **Termomagnético Comercial Sugerido:** `{motor_res['breaker_suggested']} A`")
             st.write(f"• **Rango de Ajuste Sobrecarga (115%-125%):** `{motor_res['overload_range']}`")
 
-
 # ==========================================
-# PESTAÑA 3: SELECCIÓN AUTOMÁTICA
+# PESTAÑA 3: SELECCIÓN AUTOMÁTICA POR CARGA
 # ==========================================
 with tab_auto:
     st.header("🎯 Dimensionamiento Automático de Circuitos")
-    st.caption("Ingresa la carga y la distancia. La aplicación determinará automáticamente el calibre AWG y el interruptor termomagnético ideal.")
+    st.caption("Ingresa la carga (en Amperes o Kilowatts) y la distancia. La app calculará la corriente de diseño, el calibre AWG y la protección ideal.")
 
     col_a1, col_a2 = st.columns([1, 1])
 
@@ -126,13 +125,29 @@ with tab_auto:
         system_type_auto = st.selectbox("Sistema Eléctrico", ["Monofásico 1Ø (2 hilos)", "Trifásico 3Ø (3 o 4 hilos)"], key="sys_auto")
         voltage_auto = st.number_input("Voltaje Nominal (V)", value=120.0 if "Monofásico" in system_type_auto else 220.0, step=10.0, key="v_auto")
         
-        load_amps_auto = st.number_input("Corriente de Carga Nominal (A)", min_value=0.1, value=12.0, step=1.0, key="amps_auto")
-        length_auto = st.number_input("Longitud del Circuito (m)", min_value=1.0, value=25.0, step=5.0, key="len_auto")
-        
-        mat_auto = st.selectbox("Material del Conductor", ["cobre", "aluminio"], format_func=lambda x: x.capitalize(), key="mat_auto")
-        is_continuous = st.checkbox("¿Es Carga Continua? (+3 horas activas -> factor 125%)", value=True)
+        # Selector de Tipo de Entrada de Carga
+        input_type = st.radio("Modo de Ingreso de Carga", ["Corriente Nominal (Amperes)", "Potencia Activa (kW)"], horizontal=True, key="input_type_auto")
 
-        btn_auto = st.button("🚀 Calcular Especificación Ideal", use_container_width=True)
+        if input_type == "Corriente Nominal (Amperes)":
+            load_amps_auto = st.number_input("Corriente de Carga (A)", min_value=0.1, value=12.0, step=1.0, key="amps_auto")
+        else:
+            power_kw = st.number_input("Potencia de la Carga (kW)", min_value=0.1, value=3.5, step=0.5, key="kw_auto")
+            pf_auto = st.slider("Factor de Potencia (FP)", min_value=0.70, max_value=1.00, value=0.90, step=0.01, key="pf_auto")
+            
+            # Cálculo interno de Amperes según el sistema elegido
+            import math
+            if "Monofásico" in system_type_auto:
+                load_amps_auto = (power_kw * 1000) / (voltage_auto * pf_auto)
+            else:
+                load_amps_auto = (power_kw * 1000) / (math.sqrt(3) * voltage_auto * pf_auto)
+                
+            st.info(f"💡 Corriente calculada a partir de {power_kw} kW: **{round(load_amps_auto, 2)} A**")
+
+        length_auto = st.number_input("Longitud del Circuito (m)", min_value=1.0, value=25.0, step=5.0, key="len_auto")
+        mat_auto = st.selectbox("Material del Conductor", ["cobre", "aluminio"], format_func=lambda x: x.capitalize(), key="mat_auto")
+        is_continuous = st.checkbox("¿Es Carga Continua? (+3 horas activas -> factor 125%)", value=True, key="cont_auto")
+
+        btn_auto = st.button("🚀 Calcular Especificación Ideal", use_container_width=True, key="btn_auto_calc")
 
     with col_a2:
         if btn_auto:
@@ -152,6 +167,7 @@ with tab_auto:
                 st.info(f"🛡️ **Protección Requerida:** Interruptor Termomagnético de **{res_auto['recommended_breaker']} A**")
                 
                 st.markdown("---")
+                st.write(f"• **Corriente Nominal Calculada:** `{round(load_amps_auto, 2)} A`")
                 st.write(f"• **Corriente de Diseño (125% continuo):** `{res_auto['design_amps']} A`")
                 st.write(f"• **Capacidad del Conductor Seleccionado:** `{res_auto['ampacity_capacity']} A`")
                 st.write(f"• **Caída de Voltaje Estimada:** `{res_auto['v_drop_percent']}%` ({res_auto['v_drop_volts']} V)")
