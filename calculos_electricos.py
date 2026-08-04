@@ -179,30 +179,38 @@ with tab_auto:
 # PESTAÑA 4: CIRCUITOS DERIVADOS RESIDENCIALES
 # ==========================================
 with tab_derivados:
-    st.header("🏠 Cálculo de Circuitos Derivados Residenciales")
-    st.caption("Determina la cantidad mínima de circuitos de alumbrado, pequeños aparatos y lavandería según el área de construcción (Art. 210 y 220 NOM-001/NEC).")
+    st.header("🏠 Circuitos Derivados y Factor de Demanda (NOM-001)")
+    st.caption("Cálculo de cuadros de carga, cantidad de circuitos derivados y factor de demanda para acometida residencial (Art. 210 y 220).")
 
     col_d1, col_d2 = st.columns([1, 1])
 
     with col_d1:
-        st.subheader("1. Datos de la Vivienda")
-        area_input = st.number_input("Área de Construcción (m²)", min_value=10.0, value=100.0, step=10.0, key="area_dev")
-        extra_va = st.number_input("Cargas Específicas Adicionales (VA)", min_value=0.0, value=0.0, step=500.0, help="Microondas, aire acondicionado, etc.", key="extra_dev")
+        st.subheader("1. Parámetros del Proyecto")
+        area_input = st.number_input("Área de Construcción (m²)", min_value=10.0, value=150.0, step=10.0, key="area_dev")
+        extra_va = st.number_input("Cargas Específicas Fijas (VA)", min_value=0.0, value=1500.0, step=500.0, help="Aires acondicionados, bombas, etc. (se calculan al 100%)", key="extra_dev")
         
-        btn_calc_dev = st.button("📊 Calcular Cuadro de Circuitos", use_container_width=True, key="btn_dev")
+        btn_calc_dev = st.button("📊 Calcular Cuadro de Cargas", use_container_width=True, key="btn_dev")
 
     with col_d2:
         if btn_calc_dev:
             res_dev = calculate_branch_circuits(area_input, extra_va)
             
-            st.subheader("📋 Resumen de Cargas y Circuitos Mínimos")
+            st.subheader("📋 Resumen del Cálculo Norma")
             
-            st.metric("Carga Total Estimada", f"{res_dev['total_general_va']} VA", delta=f"{round(res_dev['total_general_va']/1000, 2)} kVA")
-            
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.metric("Carga Instalada (Conectada)", f"{res_dev['general_connected_va'] + extra_va:.0f} VA")
+            with col_m2:
+                st.metric("Carga con Factor Demanda", f"{res_dev['total_demanded_va']:.0f} VA", delta="Para Acometida", delta_color="normal")
+
             st.markdown("---")
-            st.write(f"• **Carga Alumbrado/Contactos General (33 VA/m²):** `{res_dev['lighting_load_va']} VA`")
-            st.write(f"• **Circuitos Alumbrado (15A / 120V):** `{res_dev['min_lighting_circuits_15a']} circuito(s)`")
-            st.write(f"• **Circuitos Pequeños Aparatos / Cocina (20A - Art. 210.11):** `2 circuitos (3,000 VA)`")
-            st.write(f"• **Circuito Lavandería (20A - Art. 210.11):** `1 circuito (1,500 VA)`")
+            st.write(f"• **Alumbrado / Contactos ($33\\text{{ VA/m}}^2$):** `{res_dev['lighting_load_va']} VA`")
+            st.write(f"• **Pequeños Aparatos (2 x 1500 VA):** `{res_dev['small_appliances_va']} VA`")
+            st.write(f"• **Lavandería (1 x 1500 VA):** `{res_dev['laundry_va']} VA`")
+            st.write(f"• **Carga Demandada Aplicada (Tabla 220.42):** `{res_dev['demanded_general_va']} VA`")
             
-            st.success(f"✅ **Total Mínimo de Circuitos en Centro de Cargas:** **{res_dev['total_min_circuits']} Circuitos**")
+            st.success(f"✅ **Distribución Mínima en Centro de Cargas:**\n"
+                       f"- **{res_dev['min_lighting_circuits_15a']}** circuito(s) de 15A (Alumbrado/General)\n"
+                       f"- **2** circuitos de 20A (Pequeños Aparatos - Cocina)\n"
+                       f"- **1** circuito de 20A (Lavandería)\n"
+                       f"👉 **Total Mínimo:** **{res_dev['total_min_circuits']} espacios/circuitos**")
