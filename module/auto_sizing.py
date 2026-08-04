@@ -1,5 +1,5 @@
-from modules.ampacity import calculate_adjusted_ampacity
-from modules.voltage_drop import calculate_voltage_drop
+from module.ampacity import calculate_adjusted_ampacity
+from module.voltage_drop import calculate_voltage_drop
 
 def auto_select_circuit(load_amps: float, length_m: float, voltage: float, system_type: str, material: str = "cobre", temp_rating: str = "75C", is_continuous: bool = True) -> dict:
     """
