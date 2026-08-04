@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.db_loader import get_ampacity_data, get_conductors_data
-from modules.ampacity import calculate_adjusted_ampacity  # <-- Corregido: "modules" en plural
-from modules.voltage_drop import calculate_voltage_drop  # <-- Corregido: "modules" en plural
+from module.ampacity import calculate_adjusted_ampacity  # <-- Corregido: "modules" en plural
+from module.voltage_drop import calculate_voltage_drop  # <-- Corregido: "modules" en plural
 
 st.set_page_config(page_title="Cálculos Eléctricos NOM-001 / NEC", page_icon="⚡", layout="wide")
 
