@@ -204,3 +204,60 @@ def calculate_phase_balance(circuits_data: list):
         "status": status,
         "message": msg
     }
+
+def calculate_solar_pv_system(
+    monthly_consumption_kwh: float,
+    panel_power_wp: float = 550.0,
+    hsp: float = 5.2,
+    system_efficiency: float = 0.82
+):
+    """
+    Calcula el dimensionamiento de un sistema fotovoltaico interconectado a la red (SFVI)
+    según NOM-001-SEDE Art. 690.
+    
+    Parameters:
+    - monthly_consumption_kwh: Consumo promedio mensual en kWh.
+    - panel_power_wp: Potencia nominal del panel solar en Watts pico (ej. 550 Wp).
+    - hsp: Horas Solar Pico promedio de la zona (kWh/m²/día).
+    - system_efficiency: Factor de rendimiento global (PR - Performance Ratio, ej. 0.82).
+    """
+    if monthly_consumption_kwh <= 0 or panel_power_wp <= 0:
+        return None
+
+    # Consumo promedio diario (considerando mes de 30 días)
+    daily_kwh = monthly_consumption_kwh / 30.0
+
+    # Carga fotovoltaica requerida al día considerando pérdidas del sistema
+    daily_energy_required_kwh = daily_kwh / system_efficiency
+
+    # Potencia total en Watts pico (Wp) requerida
+    total_power_required_wp = (daily_energy_required_kwh / hsp) * 1000.0
+
+    # Número de paneles solares (redondeado al entero superior)
+    num_panels = math.ceil(total_power_required_wp / panel_power_wp)
+
+    # Potencia real instalada en kWp
+    installed_capacity_kwp = (num_panels * panel_power_wp) / 1000.0
+
+    # Generación estimada mensual (kWh/mes)
+    estimated_monthly_generation_kwh = installed_capacity_kwp * hsp * 30.0 * system_efficiency
+
+    # Porcentaje de cobertura del consumo
+    coverage_pct = (estimated_monthly_generation_kwh / monthly_consumption_kwh) * 100.0
+
+    # Dimensionamiento de Protección Principal AC (NOM-001 Art. 690-8)
+    # Corriente máxima de salida AC estimada a 220V 2F
+    ac_current_220v = (installed_capacity_kwp * 1000.0) / (220.0 * 0.95)  # FP ~0.95
+    # Factor de seguridad NOM Art. 690 (125% continuo)
+    min_ac_protection_amps = ac_current_220v * 1.25
+
+    return {
+        "daily_kwh": round(daily_kwh, 2),
+        "total_power_wp": round(total_power_required_wp, 1),
+        "num_panels": num_panels,
+        "installed_capacity_kwp": round(installed_capacity_kwp, 2),
+        "monthly_generation_kwh": round(estimated_monthly_generation_kwh, 1),
+        "coverage_pct": round(coverage_pct, 1),
+        "ac_current_220v": round(ac_current_220v, 1),
+        "min_ac_protection_amps": round(min_ac_protection_amps, 1)
+    }

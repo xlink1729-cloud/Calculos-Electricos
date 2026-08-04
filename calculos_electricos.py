@@ -7,7 +7,7 @@ from module.ampacity import calculate_adjusted_ampacity
 from module.voltage_drop import calculate_voltage_drop
 from module.motor_calc import calculate_motor_circuit
 from module.auto_sizing import auto_select_circuit
-from module.branch_circuits import calculate_branch_circuits, audit_service_entrance_health, calculate_phase_balance
+from module.branch_circuits import calculate_branch_circuits, audit_service_entrance_health, calculate_phase_balance, calculate_solar_pv_system
 
 st.set_page_config(page_title="Cálculos Eléctricos NOM-001 / NEC", page_icon="⚡", layout="wide")
 
@@ -15,13 +15,14 @@ st.title("⚡ Calculadora de Circuitos Eléctricos (NOM-001 / NEC)")
 st.caption("Cálculo de ampacidad corregida, caída de tensión y circuitos de motores según normativa")
 
 # PESTAÑAS PRINCIPALES (Orden de variables alineado a los elementos de la lista)
-tab_alimentadores, tab_motores, tab_auto, tab_derivados, tab_auditoria, tab_balanceo = st.tabs([
+tab_alimentadores, tab_motores, tab_auto, tab_derivados, tab_auditoria, tab_balanceo, tab_solar = st.tabs([
     "⚡ Alimentadores / Cargas Generales", 
     "🔄 Motores Eléctricos (Art. 430)",
     "🎯 Selección Automática por Carga",
     "🏠 Circuitos Derivados (Art. 210/220)",
     "🔍 Levantamiento Real / Auditoría",
-    "⚖️ Cuadro de Cargas y Balanceo 2F"
+    "⚖️ Cuadro de Cargas y Balanceo 2F",
+    "☀️ Dimensionamiento Solar (Art. 690)"
 ])
 
 
@@ -494,3 +495,100 @@ with tab_balanceo:
         st.warning(f"⚠️ **DESBALANCE ACEPTABLE:** {balance['message']}")
     else:
         st.success(f"✅ **SISTEMA BALANCEADO:** {balance['message']}")
+
+# ==========================================
+# PESTAÑA 7: DIMENSIONAMIENTO SOLAR (ART. 690)
+# ==========================================
+with tab_solar:
+    st.header("☀️ Dimensionamiento de Sistema Fotovoltaico Interconectado (NOM-001 Art. 690)")
+    st.markdown("Cálculo de arreglos fotovoltaicos, cobertura energética y requerimientos de protección AC conforme a normativa CFE / NOM.")
+
+    st.subheader("1. Parámetros de Consumo y Radiación")
+
+    col_s1, col_s2, col_s3 = st.columns(3)
+
+    with col_s1:
+        monthly_kwh = st.number_input(
+            "Consumo Promedio Mensual (kWh/mes):",
+            min_value=50.0,
+            max_value=10000.0,
+            value=450.0,
+            step=50.0,
+            help="Consumo tomado del recibo de CFE (promedio bimestral / 2 o promedio mensual)."
+        )
+
+    with col_s2:
+        hsp_input = st.number_input(
+            "Horas Solar Pico (HSP - kWh/m²/día):",
+            min_value=3.0,
+            max_value=7.0,
+            value=5.2,
+            step=0.1,
+            help="Promedio para la región (ej. Monterrey / ZMM ~ 5.0 - 5.5 HSP)."
+        )
+
+    with col_s3:
+        panel_power = st.selectbox(
+            "Potencia del Panel Solar (Wp):",
+            [450, 500, 550, 580, 600, 650],
+            index=2,  # 550Wp por defecto
+            help="Potencia nominal del módulo fotovoltaico a seleccionar."
+        )
+
+    # Parámetros avanzados en expansor opcional
+    with st.expansor("⚙️ Parámetros Avanzados del Sistema (Eficiencia y Pérdidas)"):
+        efficiency_factor = st.slider(
+            "Factor de Rendimiento Global (Performance Ratio):",
+            min_value=0.70,
+            max_value=0.90,
+            value=0.82,
+            step=0.01,
+            help="Considera pérdidas por temperatura en celdas, suciedad, inversores y caída de tensión en DC/AC (NOM recomienda 0.80 - 0.85)."
+        )
+
+    # --- Ejecutar Cálculo Solar ---
+    solar_res = calculate_solar_pv_system(
+        monthly_consumption_kwh=monthly_kwh,
+        panel_power_wp=panel_power,
+        hsp=hsp_input,
+        system_efficiency=efficiency_factor
+    )
+
+    if solar_res:
+        st.markdown("---")
+        st.subheader("2. Resultados del Arreglo Fotovoltaico")
+
+        col_r1, col_r2, col_r3, col_r4 = st.columns(4)
+
+        with col_r1:
+            st.metric("Número de Paneles", f"{solar_res['num_panels']} Módulos", f"{panel_power} Wp c/u")
+        with col_r2:
+            st.metric("Capacidad Instalada", f"{solar_res['installed_capacity_kwp']} kWp")
+        with col_r3:
+            st.metric("Generación Estimada", f"{solar_res['monthly_generation_kwh']} kWh/mes")
+        with col_r4:
+            st.metric(
+                "Cobertura Energética", 
+                f"{solar_res['coverage_pct']}%",
+                delta="Meta: ~100%"
+            )
+
+        st.markdown("---")
+        st.subheader("3. Especificaciones de Protección AC e Interconexión (NOM-001 Art. 690-8)")
+
+        col_p1, col_p2 = st.columns(2)
+
+        with col_p1:
+            st.info(
+                f"⚡ **Corriente Salida AC Inversor (220V 2F):** {solar_res['ac_current_220v']} A\n\n"
+                f"🛡️ **Protección Mínima ITM AC (125% Cont.):** {solar_res['min_ac_protection_amps']} A\n\n"
+                f"📌 **Interruptor Sugerido:** ITM 2P-{math.ceil(solar_res['min_ac_protection_amps'] / 5) * 5}A en Tablero Principal."
+            )
+
+        with col_p2:
+            st.warning(
+                "📋 **Criterios de Cumplimiento Normativo (NOM-001 / CFE):**\n"
+                "- El interruptor de interconexión debe ser de acceso exclusivo para mantenimiento.\n"
+                "- Calibre de conductores AC dimensionado al 125% de la corriente nominal del inversor.\n"
+                "- Inversor con certificación **UL 1741 / IEEE 1547** para desconexión anti-isla."
+            )
