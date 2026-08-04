@@ -16,53 +16,7 @@ tab_alimentadores, tab_motores = st.tabs([
 ])
 
 # ==========================================
-# PESTAÑA 1: SELECCIÓN AUTOMÁTICA
-# ==========================================
-with tab_auto:
-    st.header("🎯 Dimensionamiento Automático de Circuitos")
-    st.caption("Ingresa la carga y la distancia. La aplicación determinará automáticamente el calibre AWG y el interruptor termomagnético ideal.")
-
-    col_a1, col_a2 = st.columns([1, 1])
-
-    with col_a1:
-        st.subheader("1. Parámetros de la Carga")
-        system_type_auto = st.selectbox("Sistema Eléctrico", ["Monofásico 1Ø (2 hilos)", "Trifásico 3Ø (3 o 4 hilos)"], key="sys_auto")
-        voltage_auto = st.number_input("Voltaje Nominal (V)", value=120.0 if "Monofásico" in system_type_auto else 220.0, step=10.0, key="v_auto")
-        
-        load_amps_auto = st.number_input("Corriente de Carga Nominal (A)", min_value=0.1, value=12.0, step=1.0, key="amps_auto")
-        length_auto = st.number_input("Longitud del Circuito (m)", min_value=1.0, value=25.0, step=5.0, key="len_auto")
-        
-        mat_auto = st.selectbox("Material del Conductor", ["cobre", "aluminio"], format_func=lambda x: x.capitalize(), key="mat_auto")
-        is_continuous = st.checkbox("¿Es Carga Continua? (+3 horas activas -> factor 125%)", value=True)
-
-        btn_auto = st.button("🚀 Calcular Especificación Ideal", use_container_width=True)
-
-    with col_a2:
-        if btn_auto:
-            res_auto = auto_select_circuit(
-                load_amps=load_amps_auto, 
-                length_m=length_auto, 
-                voltage=voltage_auto, 
-                system_type=system_type_auto, 
-                material=mat_auto, 
-                is_continuous=is_continuous
-            )
-
-            if res_auto["recommended_awg"]:
-                st.subheader("📋 Especificación Técnica Recomendada (NOM-001)")
-                
-                st.success(f"✅ **Calibre Sugerido:** Calibre **{res_auto['recommended_awg']} AWG** ({mat_auto.capitalize()})")
-                st.info(f"🛡️ **Protección Requerida:** Interruptor Termomagnético de **{res_auto['recommended_breaker']} A**")
-                
-                st.markdown("---")
-                st.write(f"• **Corriente de Diseño (125% continuo):** `{res_auto['design_amps']} A`")
-                st.write(f"• **Capacidad del Conductor Seleccionado:** `{res_auto['ampacity_capacity']} A`")
-                st.write(f"• **Caída de Voltaje Estimada:** `{res_auto['v_drop_percent']}%` ({res_auto['v_drop_volts']} V)")
-            else:
-                st.error("❌ No se encontró un calibre estándar dentro del rango (14 AWG a 4/0) que cumpla con el límite de caída del 3%. Se requiere un alimentador especial o subir el voltaje de distribución.")
-
-# ==========================================
-# PESTAÑA 2: ALIMENTADORES Y CAÍDA DE TENSIÓN
+# PESTAÑA 1: ALIMENTADORES Y CAÍDA DE TENSIÓN
 # ==========================================
 with tab_alimentadores:
     ampacity_db = get_ampacity_data()
@@ -124,7 +78,7 @@ with tab_alimentadores:
 
 
 # ==========================================
-# PESTAÑA 3: MOTORES ELÉCTRICOS (ART. 430)
+# PESTAÑA 2: MOTORES ELÉCTRICOS (ART. 430)
 # ==========================================
 with tab_motores:
     st.header("🔄 Circuito Derivado de Motor Trifásico")
@@ -151,3 +105,49 @@ with tab_motores:
             st.write(f"• **Protección Máx. Cortocircuito / ITM (Art. 430.52):** `{motor_res['breaker_max_calc']} A`")
             st.write(f"• **Termomagnético Comercial Sugerido:** `{motor_res['breaker_suggested']} A`")
             st.write(f"• **Rango de Ajuste Sobrecarga (115%-125%):** `{motor_res['overload_range']}`")
+
+# ==========================================
+# PESTAÑA 3: SELECCIÓN AUTOMÁTICA
+# ==========================================
+with tab_auto:
+    st.header("🎯 Dimensionamiento Automático de Circuitos")
+    st.caption("Ingresa la carga y la distancia. La aplicación determinará automáticamente el calibre AWG y el interruptor termomagnético ideal.")
+
+    col_a1, col_a2 = st.columns([1, 1])
+
+    with col_a1:
+        st.subheader("1. Parámetros de la Carga")
+        system_type_auto = st.selectbox("Sistema Eléctrico", ["Monofásico 1Ø (2 hilos)", "Trifásico 3Ø (3 o 4 hilos)"], key="sys_auto")
+        voltage_auto = st.number_input("Voltaje Nominal (V)", value=120.0 if "Monofásico" in system_type_auto else 220.0, step=10.0, key="v_auto")
+        
+        load_amps_auto = st.number_input("Corriente de Carga Nominal (A)", min_value=0.1, value=12.0, step=1.0, key="amps_auto")
+        length_auto = st.number_input("Longitud del Circuito (m)", min_value=1.0, value=25.0, step=5.0, key="len_auto")
+        
+        mat_auto = st.selectbox("Material del Conductor", ["cobre", "aluminio"], format_func=lambda x: x.capitalize(), key="mat_auto")
+        is_continuous = st.checkbox("¿Es Carga Continua? (+3 horas activas -> factor 125%)", value=True)
+
+        btn_auto = st.button("🚀 Calcular Especificación Ideal", use_container_width=True)
+
+    with col_a2:
+        if btn_auto:
+            res_auto = auto_select_circuit(
+                load_amps=load_amps_auto, 
+                length_m=length_auto, 
+                voltage=voltage_auto, 
+                system_type=system_type_auto, 
+                material=mat_auto, 
+                is_continuous=is_continuous
+            )
+
+            if res_auto["recommended_awg"]:
+                st.subheader("📋 Especificación Técnica Recomendada (NOM-001)")
+                
+                st.success(f"✅ **Calibre Sugerido:** Calibre **{res_auto['recommended_awg']} AWG** ({mat_auto.capitalize()})")
+                st.info(f"🛡️ **Protección Requerida:** Interruptor Termomagnético de **{res_auto['recommended_breaker']} A**")
+                
+                st.markdown("---")
+                st.write(f"• **Corriente de Diseño (125% continuo):** `{res_auto['design_amps']} A`")
+                st.write(f"• **Capacidad del Conductor Seleccionado:** `{res_auto['ampacity_capacity']} A`")
+                st.write(f"• **Caída de Voltaje Estimada:** `{res_auto['v_drop_percent']}%` ({res_auto['v_drop_volts']} V)")
+            else:
+                st.error("❌ No se encontró un calibre estándar dentro del rango (14 AWG a 4/0) que cumpla con el límite de caída del 3%. Se requiere un alimentador especial o subir el voltaje de distribución.")
