@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.db_loader import get_ampacity_data, get_conductors_data, get_motors_data
+import math
 
 # Importaciones ajustadas exactamente a tu carpeta 'module'
 from module.ampacity import calculate_adjusted_ampacity
