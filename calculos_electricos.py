@@ -7,7 +7,7 @@ from module.ampacity import calculate_adjusted_ampacity
 from module.voltage_drop import calculate_voltage_drop
 from module.motor_calc import calculate_motor_circuit
 from module.auto_sizing import auto_select_circuit
-from module.branch_circuits import calculate_branch_circuits
+from module.branch_circuits import calculate_branch_circuits, audit_service_entrance_health
 
 st.set_page_config(page_title="Cálculos Eléctricos NOM-001 / NEC", page_icon="⚡", layout="wide")
 
