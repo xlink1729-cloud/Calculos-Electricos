@@ -383,7 +383,7 @@ with tab_derivados:
                 st.markdown(report_text)
 
                 # Generar el binario PDF
-                pdf_bytes = generate_pdf_audit_report(audit_data=res_dev, balance_data={})  # Pasa un diccionario vacío si no hay datos de balanceo aún
+                pdf_bytes = generate_pdf_audit_report(res_dev)
 
                 # Botón apuntando al PDF
                 st.download_button(
