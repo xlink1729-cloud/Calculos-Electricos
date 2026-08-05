@@ -320,7 +320,7 @@ with tab_derivados:
                 mime="application/pdf",
                 key="dl_pdf_dev",
             )
-            
+
 # ==========================================
 # PESTAÑA 5: LEVANTAMIENTO REAL / AUDITORÍA
 # ==========================================
