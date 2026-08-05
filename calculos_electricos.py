@@ -271,14 +271,8 @@ with tab_derivados:
             key="extra_dev",
         )
 
-        btn_calc_dev = st.button(
-            "📊 Calcular Alimentador y Distribución",
-            use_container_width=True,
-            key="btn_dev",
-        )
-
-    with col_d2:
-        if btn_calc_dev:
+        # Al hacer clic en Calcular, procesamos la información y la guardamos
+        if st.button("📊 Calcular Alimentador y Distribución", use_container_width=True, key="btn_dev"):
             st.session_state["res_dev"] = calculate_branch_circuits(
                 area_m2=area_input,
                 custom_appliances_va=extra_va,
@@ -291,8 +285,9 @@ with tab_derivados:
                 custom_dedicated_circuits=num_ded_c,
             )
 
-        # Mostrar resultados únicamente si ya existe un cálculo guardado
-        if st.session_state.get("res_dev") is not None:
+    with col_d2:
+        # Se muestra la información Y el botón de descarga únicamente tras haber presionado "Calcular"
+        if "res_dev" in st.session_state and st.session_state["res_dev"] is not None:
             res_dev = st.session_state["res_dev"]
 
             st.subheader("⚡ Diagnóstico del Alimentador Principal")
@@ -314,23 +309,18 @@ with tab_derivados:
 
             st.markdown("---")
 
-            # Generación segura del PDF dentro del bloque condicional
-            try:
-                pdf_bytes = generate_pdf_audit_report(res_dev)
+            # El PDF se genera en memoria una sola vez para evitar recargas infinitas
+            pdf_data = generate_pdf_audit_report(res_dev)
 
-                st.download_button(
-                    label="📥 Descargar Dictamen Técnico (.pdf)",
-                    data=pdf_bytes,
-                    file_name="dictamen_electrico_residencial.pdf",
-                    mime="application/pdf",
-                    key="dl_pdf_dev",
-                )
-            except NameError:
-                st.error(
-                    "Error: La función 'generate_pdf_audit_report' no está definida o importada."
-                )
-            except Exception as e:
-                st.error(f"Error al generar el reporte PDF: {e}")
+            st.download_button(
+                label="📥 Descargar Dictamen Técnico (.pdf)",
+                data=pdf_data,
+                file_name="dictamen_electrico_residencial.pdf",
+                mime="application/pdf",
+                key="dl_pdf_dev",
+            )
+        else:
+            st.info("👈 Ajusta los parámetros a la izquierda y presiona **'Calcular Alimentador y Distribución'** para ver el resultado y descargar el reporte.")
 
 # ==========================================
 # PESTAÑA 5: LEVANTAMIENTO REAL / AUDITORÍA
