@@ -736,3 +736,4 @@ with tab_solar:
                     f"- **Profundidad de Descarga (DoD):** {int(dod * 100)}%"
                 )
 # cambio
+
