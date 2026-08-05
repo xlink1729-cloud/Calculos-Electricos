@@ -185,10 +185,7 @@ with tab_auto:
 # ==========================================
 with tab_derivados:
     st.header("🏠 Alimentador CFE y Circuitos Derivados (NOM-001)")
-    st.caption(
-        "Calcula el alimentador principal, la protección y el cuadro de"
-        " distribución por norma o por confort."
-    )
+    st.caption("Calcula el alimentador principal, la protección y el cuadro de distribución por norma o por confort.")
 
     col_d1, col_d2 = st.columns([1, 1])
 
@@ -271,7 +268,6 @@ with tab_derivados:
             min_value=0.0,
             value=3750.0,
             step=250.0,
-            help="Suma total de potencia de A/C, microondas, lavasecadora, etc.",
             key="extra_dev",
         )
 
@@ -282,8 +278,9 @@ with tab_derivados:
         )
 
     with col_d2:
+        # Si se presiona el botón, se ejecuta el cálculo y se guarda en el Estado de la Sesión
         if btn_calc_dev:
-            res_dev = calculate_branch_circuits(
+            st.session_state["res_dev"] = calculate_branch_circuits(
                 area_m2=area_input,
                 custom_appliances_va=extra_va,
                 is_existing_survey=is_survey,
@@ -295,104 +292,35 @@ with tab_derivados:
                 custom_dedicated_circuits=num_ded_c,
             )
 
+        # Si existe el resultado guardado, se muestran los métricos y la descarga del PDF
+        if "res_dev" in st.session_state and st.session_state["res_dev"]:
+            res = st.session_state["res_dev"]
+
             st.subheader("⚡ Diagnóstico del Alimentador Principal")
 
             col_m1, col_m2 = st.columns(2)
             with col_m1:
-                st.metric(
-                    "Carga Instalada Total", f"{res_dev['total_connected_va']:.0f} VA"
-                )
-                st.metric("Carga Demandada", f"{res_dev['total_demanded_va']:.0f} VA")
-                st.metric("Corriente de Diseño (125%)", f"{res_dev['design_amps']} A")
+                st.metric("Carga Instalada Total", f"{res['total_connected_va']:.0f} VA")
+                st.metric("Carga Demandada", f"{res['total_demanded_va']:.0f} VA")
+                st.metric("Corriente de Diseño (125%)", f"{res['design_amps']} A")
             with col_m2:
-                st.metric(
-                    "Calibre Sugerido",
-                    f"Cal. {res_dev['recommended_feeder_awg']} AWG",
-                )
-                st.metric("Interruptor Principal", f"{res_dev['main_breaker']} A")
-                st.metric("Caída de Voltaje", f"{res_dev['feeder_vd_percent']}%")
+                st.metric("Calibre Sugerido", f"Cal. {res['recommended_feeder_awg']} AWG")
+                st.metric("Interruptor Principal", f"{res['main_breaker']} A")
+                st.metric("Caída de Voltaje", f"{res['feeder_vd_percent']}%")
 
             st.markdown("---")
-            st.subheader("🔌 Centro de Cargas Recomendado")
 
-            suggested_panel_spaces = max(
-                8, math.ceil(res_dev["total_circuits"] * 1.25)
+            # Generación y Descarga del Reporte PDF usando el estado guardado
+            pdf_bytes = generate_pdf_audit_report(res)
+
+            st.download_button(
+                label="📥 Descargar Dictamen Técnico (.pdf)",
+                data=pdf_bytes,
+                file_name="dictamen_electrico_residencial.pdf",
+                mime="application/pdf",
+                key="dl_pdf_dev",
             )
-            st.success(
-                "✅ **Tablero Recomendado:**"
-                f" **{suggested_panel_spaces} Espacios / Polos**"
-                f" ({res_dev['total_circuits']} ocupados + reserva)"
-            )
-
-            if is_survey:
-                st.info("ℹ️ **Distribución por Confort Activa:**")
-                st.write(
-                    "• **Alumbrado Sectorizado:**"
-                    f" `{res_dev['custom_light_circuits']} pastilla(s) (15A - Calibre"
-                    " 14/12 AWG)`"
-                )
-                st.write(
-                    "• **Contactos Generales Sectorizados:**"
-                    f" `{res_dev['custom_plug_circuits']} pastilla(s) (15A/20A - Calibre"
-                    " 12 AWG)`"
-                )
-                st.write(
-                    "• **Circuitos Dedicados:**"
-                    f" `{res_dev['custom_dedicated_circuits']} pastilla(s)"
-                    " independientes`"
-                )
-            else:
-                st.write(
-                    "• **Alumbrado Generales ($33\\text{ VA/m}^2$):**"
-                    f" `{res_dev['lighting_circuits']} pastilla(s)`"
-                )
-                st.write(
-                    "• **Circuitos de Cocina / Pequeños Aparatos:** `2 pastillas (20A)`"
-                )
-                st.write("• **Circuito de Lavandería:** `1 pastilla (20A)`")
-
-            st.markdown("---")
-            with st.expander(
-                "📋 Ver Dictamen Técnico Completo y Recomendaciones", expanded=True
-            ):
-                report_text = f"""### 📝 Reporte de Diagnóstico Eléctrico
-
-**Modo:** {"Levantamiento Real Existente" if is_survey else "Proyecto Obra Nueva NOM-001"}
-**Fecha:** Evaluado bajo NOM-001-SEDE / NEC Standards
-
-#### 1. Resumen de Cargas
-* **Carga Total Instalada:** {res_dev['total_connected_va']} VA
-* **Carga Total Demandada:** {res_dev['total_demanded_va']} VA
-* **Corriente Nominal de Operación:** {res_dev['load_amps']} A
-* **Corriente de Diseño (125% Carga Continua):** {res_dev['design_amps']} A
-
-#### 2. Alimentador Principal CFE → Centro de Cargas
-* **Conductor Principal Recomendado:** Calibre **{res_dev['recommended_feeder_awg']} AWG** Cobre (Aislamiento THHN/THHW 75°C).
-* **Interruptor Principal Sugerido:** **{res_dev['main_breaker']} A** (1 Polo a {voltage_dev} V).
-* **Caída de Voltaje Estimada:** **{res_dev['feeder_vd_percent']}%** (Cumple norma: ≤ 3%).
-
-#### 3. Cuadro de Distribución y Tablero
-* **Circuitos Activos Requeridos:** {res_dev['total_circuits']} Polos.
-* **Capacidad Nominal del Tablero Sugerida:** **{suggested_panel_spaces} Polos / Espacios**.
-
-#### 4. Criterio de Diseño, Confort y Eficiencia Energética
-* **Reserva Técnica:** Se seleccionó un gabinete de {suggested_panel_spaces} polos para dejar un 20% - 30% de capacidad libre ante futuras adiciones (ej. A/C adicionales).
-* **Aislamiento de Cargas Inductivas:** Al independizar el A/C de $950\\text{{ VA}}$, el microondas de $1,200\\text{{ VA}}$ y la lavasecadora de $1,600\\text{{ VA}}$, se elimina la fluctuación de voltaje (*flicker*) en la iluminación LED al arrancar los motores.
-* **Continuidad de Servicio:** La sectorización del alumbrado e hilos de contactos garantiza que una falla por humedad o cortocircuito local mantenga el resto de la casa energizada.
-"""
-                st.markdown(report_text)
-
-                # Generar el binario PDF
-                pdf_bytes = generate_pdf_audit_report(res_dev)
-
-                # Botón apuntando al PDF
-                st.download_button(
-                    label="📥 Descargar Dictamen Técnico (.pdf)",
-                    data=pdf_bytes,
-                    file_name="dictamen_electrico_residencial.pdf",
-                    mime="application/pdf",
-                )
-
+            
 # ==========================================
 # PESTAÑA 5: LEVANTAMIENTO REAL / AUDITORÍA
 # ==========================================
