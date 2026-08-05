@@ -298,10 +298,9 @@ def calculate_battery_storage(
         "dod_pct": int(dod * 100)
     }
 
-def generate_pdf_audit_report(audit_data: dict, balance_data: dict, solar_data: dict = None) -> bytes:
+def generate_pdf_audit_report(res_dev: dict) -> bytes:
     """
-    Genera un informe técnico de auditoría y diseño eléctrico en formato PDF conforme a la NOM-001.
-    Retorna los bytes del archivo PDF listo para su descarga.
+    Genera un informe técnico enfocado exclusivamente en Circuitos Derivados y Alimentador.
     """
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -315,20 +314,19 @@ def generate_pdf_audit_report(audit_data: dict, balance_data: dict, solar_data: 
 
     styles = getSampleStyleSheet()
     
-    # Estilos personalizados
     title_style = ParagraphStyle(
         'DocTitle',
         parent=styles['Title'],
-        fontSize=18,
-        leading=22,
+        fontSize=16,
+        leading=20,
         textColor=colors.HexColor('#1E3A8A'),
         alignment=0
     )
     h2_style = ParagraphStyle(
         'Heading2',
         parent=styles['Heading2'],
-        fontSize=13,
-        leading=16,
+        fontSize=12,
+        leading=15,
         textColor=colors.HexColor('#1E40AF'),
         spaceBefore=10,
         spaceAfter=5
@@ -340,103 +338,61 @@ def generate_pdf_audit_report(audit_data: dict, balance_data: dict, solar_data: 
         leading=13,
         textColor=colors.HexColor('#374151')
     )
-    alert_style = ParagraphStyle(
-        'Alert',
-        parent=body_style,
-        fontName='Helvetica-Bold',
-        textColor=colors.HexColor('#DC2626') if audit_data.get('status') == 'PELIGRO' else colors.HexColor('#D97706')
-    )
 
     story = []
 
-    # --- Encabezado ---
-    story.append(Paragraph("<b>DICTAMEN TÉCNICO DE AUDITORÍA Y DISEÑO ELÉCTRICO</b>", title_style))
-    story.append(Paragraph("Norma Oficial Mexicana NOM-001-SEDE | Evaluación Residencial", body_style))
-    story.append(Spacer(1, 10))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#1E3A8A'), spaceAfter=15))
+    # Encabezado
+    story.append(Paragraph("<b>MEMORIA DE CÁLCULO: CIRCUITOS DERIVADOS Y ALIMENTADOR</b>", title_style))
+    story.append(Paragraph("Norma Oficial Mexicana NOM-001-SEDE | Especificación Técnica", body_style))
+    story.append(Spacer(1, 8))
+    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#1E3A8A'), spaceAfter=12))
 
-    # --- Resumen de Auditoría ---
-    story.append(Paragraph("1. Diagnóstico de Salud de la Acometida", h2_style))
+    # Resumen del Alimentador Principal
+    story.append(Paragraph("1. Diagnóstico del Alimentador Principal", h2_style))
     
-    audit_table_data = [
-        ["Parámetro", "Valor Evaluado", "Criterio de Norma"],
-        ["Corriente Demandada Sostenida", f"{audit_data.get('i_total', 0):.1f} A", "Carga Real de Operación"],
-        ["Capacidad de Protección", f"{audit_data.get('main_amps', 0)} A", "Límite Continuo NOM (80%)"],
-        ["Porcentaje de Carga", f"{audit_data.get('load_percentage', 0)}%", "< 80% Seguro / > 80% Riesgo Térmico"],
-        ["Estado del Sistema", audit_data.get('status', 'N/A'), "Dictamen de Seguridad"]
+    summary_table_data = [
+        ["Parámetro", "Valor Calculado", "Criterio de Norma / Recomendación"],
+        ["Carga Total Instalada", f"{res_dev.get('total_connected_va', 0):.0f} VA", "Suma de Cargas NOM"],
+        ["Carga Demandada", f"{res_dev.get('total_demanded_va', 0):.0f} VA", "Factor de Demanda Aplicado"],
+        ["Corriente de Diseño (125%)", f"{res_dev.get('design_amps', 0):.1f} A", "Carga Continua NOM Art. 210"],
+        ["Calibre de Conductor Sugerido", f"Cal. {res_dev.get('recommended_feeder_awg', 'N/A')} AWG", "THHN/THHW Cobre 75°C"],
+        ["Protección Principal", f"{res_dev.get('main_breaker', 0)} A", "Interruptor Termomagnético"],
+        ["Caída de Voltaje Estimada", f"{res_dev.get('feeder_vd_percent', 0)}%", "Límite Máximo Permitido: ≤ 3%"]
     ]
 
-    t_audit = Table(audit_table_data, colWidths=[180, 150, 200])
-    t_audit.setStyle(TableStyle([
+    t_summary = Table(summary_table_data, colWidths=[180, 140, 210])
+    t_summary.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F3F4F6')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1F2937')),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
         ('ALIGN', (1, 0), (1, -1), 'CENTER'),
     ]))
-    story.append(t_audit)
-    story.append(Spacer(1, 10))
+    story.append(t_summary)
+    story.append(Spacer(1, 12))
 
-    # Riesgos y Recomendaciones
-    story.append(Paragraph("<b>Hallazgos de Riesgo Térmico:</b>", body_style))
-    for risk in audit_data.get('risks', []):
-        story.append(Paragraph(f"• {risk}", alert_style))
+    # Distribución de Circuitos Derivados
+    story.append(Paragraph("2. Distribución de Centro de Cargas", h2_style))
+    
+    circuits_table_data = [
+        ["Sector / Tipo", "N° Pastillas", "Protección / Calibre"],
+        ["Alumbrado Generales", f"{res_dev.get('custom_light_circuits', res_dev.get('lighting_circuits', 1))}", "15A - Calibre 14/12 AWG"],
+        ["Contactos Generales", f"{res_dev.get('custom_plug_circuits', 2)}", "15A/20A - Calibre 12 AWG"],
+        ["Cargas Dedicadas / Especiales", f"{res_dev.get('custom_dedicated_circuits', 0)}", "Circuitos Independientes"]
+    ]
 
-    story.append(Spacer(1, 5))
-    story.append(Paragraph(f"<b>Acción Correctiva Sugerida:</b> {audit_data.get('recommended_action', 'N/A')}", body_style))
-    story.append(Spacer(1, 15))
-
-    # --- Cuadro de Balanceo de Fases ---
-    if balance_data:
-        story.append(Paragraph("2. Cuadro de Cargas y Balanceo de Fases (2F-1N)", h2_style))
-        
-        balance_table_data = [
-            ["Fase A (VA)", "Fase B (VA)", "Carga Total (VA)", "Desbalance (%)", "Estado NOM"],
-            [
-                f"{balance_data.get('va_phase_a', 0):.0f} VA",
-                f"{balance_data.get('va_phase_b', 0):.0f} VA",
-                f"{balance_data.get('total_va', 0):.0f} VA",
-                f"{balance_data.get('unbalance_pct', 0)}%",
-                balance_data.get('status', 'N/A')
-            ]
-        ]
-        t_balance = Table(balance_table_data, colWidths=[100, 100, 110, 110, 110])
-        t_balance.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F3F4F6')),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ]))
-        story.append(t_balance)
-        story.append(Spacer(1, 5))
-        story.append(Paragraph(f"<i>Nota: {balance_data.get('message', '')}</i>", body_style))
-        story.append(Spacer(1, 15))
-
-    # --- Dimensión Solar (Si aplica) ---
-    if solar_data:
-        story.append(Paragraph("3. Dimensionamiento Fotovoltaico (NOM Art. 690)", h2_style))
-        solar_table_data = [
-            ["Potencia Instalada", "N° Paneles", "Generación Mensual", "Cobertura", "Protección AC"],
-            [
-                f"{solar_data.get('installed_capacity_kwp', 0)} kWp",
-                f"{solar_data.get('num_panels', 0)} Módulos",
-                f"{solar_data.get('monthly_generation_kwh', 0)} kWh/mes",
-                f"{solar_data.get('coverage_pct', 0)}%",
-                f"{solar_data.get('min_ac_protection_amps', 0)} A"
-            ]
-        ]
-        t_solar = Table(solar_table_data, colWidths=[100, 90, 120, 100, 120])
-        t_solar.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F3F4F6')),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ]))
-        story.append(t_solar)
+    t_circuits = Table(circuits_table_data, colWidths=[200, 130, 200])
+    t_circuits.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F3F4F6')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+    ]))
+    story.append(t_circuits)
 
     doc.build(story)
     buffer.seek(0)
