@@ -278,7 +278,6 @@ with tab_derivados:
         )
 
     with col_d2:
-        # Si se presiona el botón, se ejecuta el cálculo y se guarda en el Estado de la Sesión
         if btn_calc_dev:
             st.session_state["res_dev"] = calculate_branch_circuits(
                 area_m2=area_input,
@@ -292,26 +291,31 @@ with tab_derivados:
                 custom_dedicated_circuits=num_ded_c,
             )
 
-        # Si existe el resultado guardado, se muestran los métricos y la descarga del PDF
-        if "res_dev" in st.session_state and st.session_state["res_dev"]:
-            res = st.session_state["res_dev"]
+        # Validación estricta antes de invocar la generación del PDF
+        if "res_dev" in st.session_state and st.session_state["res_dev"] is not None:
+            res_data = st.session_state["res_dev"]
 
             st.subheader("⚡ Diagnóstico del Alimentador Principal")
 
             col_m1, col_m2 = st.columns(2)
             with col_m1:
-                st.metric("Carga Instalada Total", f"{res['total_connected_va']:.0f} VA")
-                st.metric("Carga Demandada", f"{res['total_demanded_va']:.0f} VA")
-                st.metric("Corriente de Diseño (125%)", f"{res['design_amps']} A")
+                st.metric(
+                    "Carga Instalada Total", f"{res_data['total_connected_va']:.0f} VA"
+                )
+                st.metric("Carga Demandada", f"{res_data['total_demanded_va']:.0f} VA")
+                st.metric("Corriente de Diseño (125%)", f"{res_data['design_amps']} A")
             with col_m2:
-                st.metric("Calibre Sugerido", f"Cal. {res['recommended_feeder_awg']} AWG")
-                st.metric("Interruptor Principal", f"{res['main_breaker']} A")
-                st.metric("Caída de Voltaje", f"{res['feeder_vd_percent']}%")
+                st.metric(
+                    "Calibre Sugerido",
+                    f"Cal. {res_data['recommended_feeder_awg']} AWG",
+                )
+                st.metric("Interruptor Principal", f"{res_data['main_breaker']} A")
+                st.metric("Caída de Voltaje", f"{res_data['feeder_vd_percent']}%")
 
             st.markdown("---")
 
-            # Generación y Descarga del Reporte PDF usando el estado guardado
-            pdf_bytes = generate_pdf_audit_report(res)
+            # La llamada a generate_pdf_audit_report queda encapsulada dentro de este bloque guardado
+            pdf_bytes = generate_pdf_audit_report(res_data)
 
             st.download_button(
                 label="📥 Descargar Dictamen Técnico (.pdf)",
