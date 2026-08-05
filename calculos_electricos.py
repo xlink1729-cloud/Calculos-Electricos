@@ -1,14 +1,19 @@
 import streamlit as st
 from utils.db_loader import get_ampacity_data, get_conductors_data, get_motors_data
 import math
-from pdf_generator import generate_pdf_audit_report
 
 # Importaciones ajustadas exactamente a tu carpeta 'module'
 from module.ampacity import calculate_adjusted_ampacity
 from module.voltage_drop import calculate_voltage_drop
 from module.motor_calc import calculate_motor_circuit
 from module.auto_sizing import auto_select_circuit
-from module.branch_circuits import calculate_branch_circuits, audit_service_entrance_health, calculate_phase_balance, calculate_solar_pv_system
+from module.branch_circuits import (
+    calculate_branch_circuits,
+    audit_service_entrance_health,
+    calculate_phase_balance,
+    calculate_solar_pv_system,
+    generate_pdf_audit_report,
+)
 
 st.set_page_config(page_title="Cálculos Eléctricos NOM-001 / NEC", page_icon="⚡", layout="wide")
 
@@ -317,7 +322,7 @@ with tab_derivados:
                 st.error("⚠️ La función `generate_pdf_audit_report` no se ha encontrado en el código. Verifica que esté definida o importada correctamente al inicio del script.")
         else:
             st.info("👈 Presiona **'Calcular Alimentador y Distribución'** para ver el resultado y habilitar la descarga del dictamen.")
-            
+
 # ==========================================
 # PESTAÑA 5: LEVANTAMIENTO REAL / AUDITORÍA
 # ==========================================
