@@ -735,3 +735,4 @@ with tab_solar:
                     f"- **Módulos Recomendados:** {num_modules} Batería(s) de Litio 48V 100Ah (4.8 kWh c/u)\n"
                     f"- **Profundidad de Descarga (DoD):** {int(dod * 100)}%"
                 )
+# cambio
