@@ -1,6 +1,7 @@
 import streamlit as st
 from utils.db_loader import get_ampacity_data, get_conductors_data, get_motors_data
 import math
+from pdf_generator import generate_pdf_audit_report
 
 # Importaciones ajustadas exactamente a tu carpeta 'module'
 from module.ampacity import calculate_adjusted_ampacity
@@ -271,7 +272,6 @@ with tab_derivados:
             key="extra_dev",
         )
 
-        # Al hacer clic en Calcular, procesamos la información y la guardamos
         if st.button("📊 Calcular Alimentador y Distribución", use_container_width=True, key="btn_dev"):
             st.session_state["res_dev"] = calculate_branch_circuits(
                 area_m2=area_input,
@@ -286,7 +286,6 @@ with tab_derivados:
             )
 
     with col_d2:
-        # Se muestra la información Y el botón de descarga únicamente tras haber presionado "Calcular"
         if "res_dev" in st.session_state and st.session_state["res_dev"] is not None:
             res_dev = st.session_state["res_dev"]
 
@@ -294,34 +293,31 @@ with tab_derivados:
 
             col_m1, col_m2 = st.columns(2)
             with col_m1:
-                st.metric(
-                    "Carga Instalada Total", f"{res_dev['total_connected_va']:.0f} VA"
-                )
+                st.metric("Carga Instalada Total", f"{res_dev['total_connected_va']:.0f} VA")
                 st.metric("Carga Demandada", f"{res_dev['total_demanded_va']:.0f} VA")
                 st.metric("Corriente de Diseño (125%)", f"{res_dev['design_amps']} A")
             with col_m2:
-                st.metric(
-                    "Calibre Sugerido",
-                    f"Cal. {res_dev['recommended_feeder_awg']} AWG",
-                )
+                st.metric("Calibre Sugerido", f"Cal. {res_dev['recommended_feeder_awg']} AWG")
                 st.metric("Interruptor Principal", f"{res_dev['main_breaker']} A")
                 st.metric("Caída de Voltaje", f"{res_dev['feeder_vd_percent']}%")
 
             st.markdown("---")
 
-            # El PDF se genera en memoria una sola vez para evitar recargas infinitas
-            pdf_data = generate_pdf_audit_report(res_dev)
-
-            st.download_button(
-                label="📥 Descargar Dictamen Técnico (.pdf)",
-                data=pdf_data,
-                file_name="dictamen_electrico_residencial.pdf",
-                mime="application/pdf",
-                key="dl_pdf_dev",
-            )
+            # Verificación de la existencia de la función antes de invocar
+            if "generate_pdf_audit_report" in globals() or "generate_pdf_audit_report" in locals():
+                pdf_data = generate_pdf_audit_report(res_dev)
+                st.download_button(
+                    label="📥 Descargar Dictamen Técnico (.pdf)",
+                    data=pdf_data,
+                    file_name="dictamen_electrico_residencial.pdf",
+                    mime="application/pdf",
+                    key="dl_pdf_dev",
+                )
+            else:
+                st.error("⚠️ La función `generate_pdf_audit_report` no se ha encontrado en el código. Verifica que esté definida o importada correctamente al inicio del script.")
         else:
-            st.info("👈 Ajusta los parámetros a la izquierda y presiona **'Calcular Alimentador y Distribución'** para ver el resultado y descargar el reporte.")
-
+            st.info("👈 Presiona **'Calcular Alimentador y Distribución'** para ver el resultado y habilitar la descarga del dictamen.")
+            
 # ==========================================
 # PESTAÑA 5: LEVANTAMIENTO REAL / AUDITORÍA
 # ==========================================
