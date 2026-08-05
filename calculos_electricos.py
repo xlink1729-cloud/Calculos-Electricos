@@ -291,39 +291,46 @@ with tab_derivados:
                 custom_dedicated_circuits=num_ded_c,
             )
 
-        # Validación estricta antes de invocar la generación del PDF
-        if "res_dev" in st.session_state and st.session_state["res_dev"] is not None:
-            res_data = st.session_state["res_dev"]
+        # Mostrar resultados únicamente si ya existe un cálculo guardado
+        if st.session_state.get("res_dev") is not None:
+            res_dev = st.session_state["res_dev"]
 
             st.subheader("⚡ Diagnóstico del Alimentador Principal")
 
             col_m1, col_m2 = st.columns(2)
             with col_m1:
                 st.metric(
-                    "Carga Instalada Total", f"{res_data['total_connected_va']:.0f} VA"
+                    "Carga Instalada Total", f"{res_dev['total_connected_va']:.0f} VA"
                 )
-                st.metric("Carga Demandada", f"{res_data['total_demanded_va']:.0f} VA")
-                st.metric("Corriente de Diseño (125%)", f"{res_data['design_amps']} A")
+                st.metric("Carga Demandada", f"{res_dev['total_demanded_va']:.0f} VA")
+                st.metric("Corriente de Diseño (125%)", f"{res_dev['design_amps']} A")
             with col_m2:
                 st.metric(
                     "Calibre Sugerido",
-                    f"Cal. {res_data['recommended_feeder_awg']} AWG",
+                    f"Cal. {res_dev['recommended_feeder_awg']} AWG",
                 )
-                st.metric("Interruptor Principal", f"{res_data['main_breaker']} A")
-                st.metric("Caída de Voltaje", f"{res_data['feeder_vd_percent']}%")
+                st.metric("Interruptor Principal", f"{res_dev['main_breaker']} A")
+                st.metric("Caída de Voltaje", f"{res_dev['feeder_vd_percent']}%")
 
             st.markdown("---")
 
-            # La llamada a generate_pdf_audit_report queda encapsulada dentro de este bloque guardado
-            pdf_bytes = generate_pdf_audit_report(res_data)
+            # Generación segura del PDF dentro del bloque condicional
+            try:
+                pdf_bytes = generate_pdf_audit_report(res_dev)
 
-            st.download_button(
-                label="📥 Descargar Dictamen Técnico (.pdf)",
-                data=pdf_bytes,
-                file_name="dictamen_electrico_residencial.pdf",
-                mime="application/pdf",
-                key="dl_pdf_dev",
-            )
+                st.download_button(
+                    label="📥 Descargar Dictamen Técnico (.pdf)",
+                    data=pdf_bytes,
+                    file_name="dictamen_electrico_residencial.pdf",
+                    mime="application/pdf",
+                    key="dl_pdf_dev",
+                )
+            except NameError:
+                st.error(
+                    "Error: La función 'generate_pdf_audit_report' no está definida o importada."
+                )
+            except Exception as e:
+                st.error(f"Error al generar el reporte PDF: {e}")
 
 # ==========================================
 # PESTAÑA 5: LEVANTAMIENTO REAL / AUDITORÍA
