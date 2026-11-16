@@ -218,18 +218,22 @@ with tab_derivados:
             key="extra_dev",
         )
 
-        if st.button("📊 Procesar y Auditar con Datos de Campo", use_container_width=True, key="btn_dev"):
-            st.session_state["res_dev"] = calculate_branch_circuits(
-                area_m2=0.0,
-                custom_appliances_va=total_carga_tabla + extra_va,
-                is_existing_survey=True,
-                lighting_real_va=total_carga_tabla,
-                voltage=voltage_dev,
-                feeder_length_m=feeder_len,
-                custom_light_circuits=1,
-                custom_plug_circuits=2,
-                custom_dedicated_circuits=1,
-            )
+        if st.button(
+            "📊 Procesar y Auditar con Datos de Campo",
+            use_container_width=True,
+            key="btn_dev",
+        ):
+          st.session_state["res_dev"] = calculate_branch_circuits(
+              area_m2=0.0,
+              custom_appliances_va=extra_va,  # <-- Solo las cargas especiales adicionales (ej. si extra_va es 0, va 0)
+              is_existing_survey=True,
+              lighting_real_va=total_carga_tabla,  # <-- Aquí entran tus 5,879 VA exactos de la tabla
+              voltage=voltage_dev,
+              feeder_length_m=feeder_len,
+              custom_light_circuits=1,
+              custom_plug_circuits=2,
+              custom_dedicated_circuits=1,
+          )
 
     with col_d2:
         if "res_dev" in st.session_state and st.session_state["res_dev"] is not None:
