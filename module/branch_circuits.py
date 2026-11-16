@@ -54,8 +54,11 @@ def calculate_branch_circuits(
     design_amps = load_amps * 1.25  # 125% Carga continua / factor de seguridad
 
     # Selección de Calibre de Alimentador y Verificación de Caída de Voltaje
-    awg_candidates = ["12", "10", "8", "6", "4", "2", "1/0"]
-    selected_awg = "8"
+    # Lista ampliada de calibres incluyendo calibres más gruesos
+    awg_candidates = ["12", "10", "8", "6", "4", "2", "1/0", "2/0", "3/0", "4/0"]
+    
+    # Valor por defecto seguro (Calibre 4 en lugar de 8)
+    selected_awg = "4"
     feeder_vd_percent = 0.0
 
     for awg in awg_candidates:
