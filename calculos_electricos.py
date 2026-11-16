@@ -186,15 +186,14 @@ with tab_derivados:
         feeder_len = st.number_input("Distancia de Medidor a Centro de Cargas (m)", min_value=1.0, value=8.0, step=1.0, key="feeder_len_dev")
 
         st.markdown("---")
-        st.subheader("2. Cuadro de Cargas Interactivos (Levantamiento)")
-        st.info("💡 Haz doble clic en las celdas para modificar valores o usa el botón **+** para agregar más circuitos.")
+        st.subheader("2. Cuadro de Cargas Levantadas en Sitio")
+        st.info("💡 Circuitos actualizados según tu levantamiento físico. Puedes ajustar las cargas en VA o agregar más filas si lo requieres.")
 
         if "df_levantamiento" not in st.session_state:
             st.session_state["df_levantamiento"] = pd.DataFrame([
-                {"Circuito": "C-1", "Descripción": "Alumbrado General", "Carga (VA)": 850.0},
-                {"Circuito": "C-2", "Descripción": "Contactos Recámaras", "Carga (VA)": 1400.0},
-                {"Circuito": "C-3", "Descripción": "Contactos Cocina", "Carga (VA)": 2200.0},
-                {"Circuito": "C-4", "Descripción": "Minisplit Inverter", "Carga (VA)": 1500.0},
+                {"Circuito": "C-1", "Descripción": "Alumbrado: Sala-Comedor, Patio, Cuarto 2, Baño 2", "Carga (VA)": 600.0},
+                {"Circuito": "C-2", "Descripción": "Contactos: Cocina y Patio", "Carga (VA)": 2500.0},
+                {"Circuito": "C-3", "Descripción": "Contactos/Cargas: Cuarto 1 y Baño 1", "Carga (VA)": 1200.0},
             ])
 
         edited_df = st.data_editor(
@@ -204,24 +203,22 @@ with tab_derivados:
             key="editor_hoja_campo",
             column_config={
                 "Circuito": st.column_config.TextColumn("Circuito", required=True),
-                "Descripción": st.column_config.TextColumn("Descripción", width="medium"),
+                "Descripción": st.column_config.TextColumn("Descripción de Áreas", width="large"),
                 "Carga (VA)": st.column_config.NumberColumn("Carga (VA)", min_value=0.0, step=50.0, format="%.0f VA"),
             }
         )
 
-        # Sumar la carga total ingresada en la tabla
         total_carga_tabla = edited_df["Carga (VA)"].sum() if not edited_df.empty else 0.0
 
         extra_va = st.number_input(
-            "Cargas Especiales Adicionales (VA)",
+            "Cargas Especiales Adicionales (ej. Minisplit/Bomba) (VA)",
             min_value=0.0,
-            value=0.0,
+            value=1500.0,
             step=250.0,
             key="extra_dev",
         )
 
         if st.button("📊 Procesar y Auditar con Datos de Campo", use_container_width=True, key="btn_dev"):
-            # Alimentamos la función nativa con la suma del levantamiento interactivo
             st.session_state["res_dev"] = calculate_branch_circuits(
                 area_m2=0.0,
                 custom_appliances_va=total_carga_tabla + extra_va,
@@ -229,7 +226,7 @@ with tab_derivados:
                 lighting_real_va=total_carga_tabla,
                 voltage=voltage_dev,
                 feeder_length_m=feeder_len,
-                custom_light_circuits=len(edited_df),
+                custom_light_circuits=1,
                 custom_plug_circuits=2,
                 custom_dedicated_circuits=1,
             )
@@ -252,7 +249,6 @@ with tab_derivados:
 
             st.markdown("---")
 
-            # Generación e inclusión del botón de descarga del PDF técnico
             if "generate_pdf_audit_report" in globals() or "generate_pdf_audit_report" in locals():
                 pdf_data = generate_pdf_audit_report(res_dev)
                 st.download_button(
@@ -265,7 +261,7 @@ with tab_derivados:
             else:
                 st.error("⚠️ La función `generate_pdf_audit_report` no se encuentra disponible.")
         else:
-            st.info("👈 Ingresa tus circuitos en la tabla y presiona **'Procesar y Auditar con Datos de Campo'** para ver el resultado y habilitar el dictamen en PDF.")
+            st.info("👈 Presiona **'Procesar y Auditar con Datos de Campo'** para generar el diagnóstico y habilitar la descarga del dictamen en PDF.")
 
 
 # ==========================================
